@@ -10,14 +10,15 @@
     <!-- Layar Awal & Registrasi Tim -->
     <div id="start-screen">
         <h1 class="game-title">🏰 Benteng Pecahan</h1>
-        <div class="instructions">
-            <h3>Strategi Bertahan:</h3>
+        <div class="instructions" style="font-size: 1.1rem;">
+            <h3 style="margin-bottom:10px; color:#f9d342;">Strategi Kombinasi Menara:</h3>
             <ul>
-                <li>1. <b>Kuis Energi:</b> Jawab soal pecahan. Benar (+1 Energi), Salah (-1 Energi).</li>
-                <li>2. <b>Prajurit Penahan (Baru):</b> Beli Pasukan untuk memblokir monster gesit di jalur!</li>
-                <li>3. <b>Sistem Upgrade:</b> Sentuh menara yang sudah dibangun untuk menaikkan levelnya (Butuh Energi).</li>
-                <li>4. <b>Boss Area (AoE):</b> Jauhi aura merah Boss, atau menaramu akan dihancurkan seketika!</li>
-                <li>5. <b>Peta Dinamis:</b> Setiap Level memiliki rute (map) yang berbeda.</li>
+                <li>❄️ <b>Es</b> (Harga 1): Menembak cepat. <b>Damage x2 melawan monster Cepat.</b></li>
+                <li>🔥 <b>Api</b> (Harga 2): Menembak sedang. <b>Damage x2 melawan monster Normal.</b></li>
+                <li>⚡ <b>Petir</b> (Harga 3): Menembak lambat. <b>Damage x2 menembus armor monster Tank.</b></li>
+                <li>🛡️ <b>Barak</b> (Harga 2): Mengeluarkan 3 prajurit untuk memblokir laju musuh.</li>
+                <br>
+                <li style="color: #ff7b54;">⚠️ <b>PERHATIAN:</b> Jawab salah kuis pecahan = Energi dikurangi 1.</li>
             </ul>
         </div>
         <input type="text" id="team-name-input" placeholder="Masukkan Nama Tim (Misal: Tim Garuda)" maxlength="15">
@@ -58,16 +59,16 @@
         <div id="shop-panel">
             <h3 class="shop-title">Gudang Senjata</h3>
             <button class="tower-btn" data-type="ice" data-cost="1" onclick="selectTower('ice', 1)" ontouchstart="selectTower('ice', 1)">
-                <span class="tower-name">❄️ Es (Pelambat)</span><span class="tower-cost">1 Energi</span>
+                <span class="tower-name">❄️ Es (Anti-Cepat)</span><span class="tower-cost">1 Energi</span>
             </button>
             <button class="tower-btn" data-type="fire" data-cost="2" onclick="selectTower('fire', 2)" ontouchstart="selectTower('fire', 2)">
-                <span class="tower-name">🔥 Api (Standar)</span><span class="tower-cost">2 Energi</span>
+                <span class="tower-name">🔥 Api (Anti-Normal)</span><span class="tower-cost">2 Energi</span>
             </button>
-            <button class="tower-btn" data-type="lightning" data-cost="4" onclick="selectTower('lightning', 4)" ontouchstart="selectTower('lightning', 4)">
-                <span class="tower-name">⚡ Petir (Maut)</span><span class="tower-cost">4 Energi</span>
+            <button class="tower-btn" data-type="lightning" data-cost="3" onclick="selectTower('lightning', 3)" ontouchstart="selectTower('lightning', 3)">
+                <span class="tower-name">⚡ Petir (Anti-Tank)</span><span class="tower-cost">3 Energi</span>
             </button>
-            <button class="tower-btn" data-type="barracks" data-cost="3" onclick="selectTower('barracks', 3)" ontouchstart="selectTower('barracks', 3)" style="background: #27ae60;">
-                <span class="tower-name">🛡️ Barak Pasukan</span><span class="tower-cost">3 Energi (Memblokir)</span>
+            <button class="tower-btn" data-type="barracks" data-cost="2" onclick="selectTower('barracks', 2)" ontouchstart="selectTower('barracks', 2)" style="background: #27ae60;">
+                <span class="tower-name">🛡️ Barak Pasukan</span><span class="tower-cost">2 Energi</span>
             </button>
             <div style="margin-top: 10px; font-size: 0.8rem; color: #ccc; text-align: center;">
                 <i>*Sentuh menaramu di peta untuk Upgrade!</i>
