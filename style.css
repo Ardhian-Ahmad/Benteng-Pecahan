@@ -1,127 +1,58 @@
-* {
-    box-sizing: border-box; 
-    margin: 0; 
-    padding: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    user-select: none;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+body { background-color: #1a1a2e; overflow: hidden; }
+#gameCanvas, #shop-panel, #quiz-panel { touch-action: none; }
+#game-container { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; }
 
-body { 
-    background-color: #1a1a2e; 
-    overflow: hidden; 
-    /* Dihapus 'touch-action: none' dari sini agar tombol UI bisa diklik di Android */
+/* Layar Overlay (Start, Pengumuman, HoF) */
+#start-screen, #announcement-overlay, #hof-screen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15, 52, 96, 0.95); display: flex; flex-direction: column; 
+    justify-content: center; align-items: center; z-index: 1000; color: white; text-align: center;
 }
-
-/* Hanya memblokir scroll pada kanvas dan area game */
-#gameCanvas, #shop-panel, #quiz-panel {
-    touch-action: none; 
-}
-
-#game-container { 
-    position: relative; 
-    width: 100vw; 
-    height: 100vh; 
-    display: flex; 
-    flex-direction: column; 
-}
-
-/* Layar Awal */
-#start-screen {
-    position: absolute; 
-    top: 0; left: 0; 
-    width: 100%; height: 100%;
-    background: rgba(15, 52, 96, 0.95);
-    display: flex; flex-direction: column; 
-    justify-content: center; align-items: center;
-    z-index: 1000; 
-    color: white; text-align: left;
-}
-
-/* Layar Pengumuman Wave/Level */
-#announcement-overlay {
-    position: absolute; 
-    top: 0; left: 0; 
-    width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex; flex-direction: column; 
-    justify-content: center; align-items: center;
-    z-index: 500; 
-    color: white; text-align: center;
-}
+#announcement-overlay { background: rgba(0, 0, 0, 0.8); z-index: 500; }
 
 #announce-title { font-size: 4rem; color: #f9d342; text-shadow: 2px 2px 10px #000; margin-bottom: 20px;}
 #announce-desc { font-size: 2rem; color: #4ecca3; }
-
 .game-title { font-size: 3.5rem; margin-bottom: 20px; color: #4ecca3; text-shadow: 2px 2px 5px #000; }
-.instructions { background: rgba(0,0,0,0.5); padding: 30px; border-radius: 15px; font-size: 1.3rem; margin-bottom: 30px; border: 2px solid #e94560; }
+.instructions { background: rgba(0,0,0,0.5); padding: 30px; border-radius: 15px; font-size: 1.3rem; margin-bottom: 30px; border: 2px solid #e94560; text-align: left;}
 .instructions li { margin-bottom: 10px; list-style: none; }
 
-button {
-    touch-action: manipulation; /* Optimasi layar sentuh */
-}
-
-#start-btn { 
-    background: #e94560; color: white; 
-    font-size: 2rem; padding: 20px 40px; 
-    border: none; border-radius: 15px; cursor: pointer; 
-    font-weight: bold; transition: transform 0.2s; 
+button { touch-action: manipulation; }
+#start-btn, #restart-btn { 
+    background: #e94560; color: white; font-size: 2rem; padding: 20px 40px; 
+    border: none; border-radius: 15px; cursor: pointer; font-weight: bold; 
     box-shadow: 0 5px 15px rgba(233, 69, 96, 0.4); 
 }
-#start-btn:active { transform: scale(0.95); }
-
+#start-btn:active, #restart-btn:active { transform: scale(0.95); }
 .hidden { display: none !important; }
 
 /* Antarmuka Atas */
-#top-bar { 
-    position: absolute; top: 0; width: 100%; height: 60px; 
-    background: rgba(22, 33, 62, 0.9); display: flex; 
-    justify-content: space-between; align-items: center; 
-    padding: 0 30px; z-index: 10; color: white; 
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
-}
-
+#top-bar { position: absolute; top: 0; width: 100%; height: 60px; background: rgba(22, 33, 62, 0.9); display: flex; justify-content: space-between; align-items: center; padding: 0 30px; z-index: 10; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
 .stat-box { font-size: 1.5rem; font-weight: bold; }
 .highlight-text { color: #f2a365; }
 
 .message-banner {
     position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,0,0,0.7); padding: 10px 30px; border-radius: 20px;
+    background: rgba(0,0,0,0.8); padding: 10px 30px; border-radius: 20px;
     font-size: 1.5rem; color: #4ecca3; font-weight: bold; z-index: 10;
-    pointer-events: none;
+    pointer-events: none; text-shadow: 1px 1px 2px #000;
 }
 
 #gameCanvas { width: 100%; height: 100%; background-color: #2a363b; display: block; }
 
 /* Toko Menara */
-#shop-panel { 
-    position: absolute; right: 0; top: 60px; width: 250px; 
-    height: calc(100% - 200px); background: rgba(15, 52, 96, 0.8); 
-    padding: 20px; display: flex; flex-direction: column; gap: 15px; 
-    z-index: 10; border-left: 3px solid #e94560; 
-}
+#shop-panel { position: absolute; right: 0; top: 60px; width: 250px; height: calc(100% - 200px); background: rgba(15, 52, 96, 0.8); padding: 20px; display: flex; flex-direction: column; gap: 15px; z-index: 10; border-left: 3px solid #e94560; }
 .shop-title { color: white; text-align: center; margin-bottom: 10px; font-size: 1.5rem; }
-.tower-btn { 
-    background: #e94560; color: white; border: none; padding: 15px; 
-    border-radius: 10px; cursor: pointer; display: flex; flex-direction: column; 
-    align-items: center; font-size: 1.2rem; transition: transform 0.1s, background 0.3s; 
-}
+.tower-btn { background: #e94560; color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 1.2rem; transition: transform 0.1s; }
 .tower-btn:active { transform: scale(0.95); }
 .tower-btn.disabled { background: #555; cursor: not-allowed; opacity: 0.7; }
 .tower-name { font-weight: bold; }
 .tower-cost { font-size: 1rem; margin-top: 5px; color: #ffd700; }
 
 /* Panel Kuis */
-#quiz-panel { 
-    position: absolute; bottom: 0; width: 100%; height: 140px; 
-    background: #16213e; display: flex; flex-direction: column; 
-    align-items: center; justify-content: center; z-index: 10; 
-    border-top: 4px solid #4ecca3; padding: 10px; 
-}
+#quiz-panel { position: absolute; bottom: 0; width: 100%; height: 140px; background: #16213e; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; border-top: 4px solid #4ecca3; padding: 10px; }
 #question-text { color: white; font-size: 2rem; font-weight: bold; margin-bottom: 15px; text-shadow: 1px 1px 3px #000; }
 #quiz-options { display: flex; gap: 20px; }
-.quiz-btn { 
-    background: #4ecca3; color: #1a1a2e; font-size: 1.8rem; 
-    font-weight: bold; padding: 10px 40px; border: 3px solid #fff; 
-    border-radius: 15px; cursor: pointer; transition: transform 0.1s, background 0.2s; 
-}
+.quiz-btn { background: #4ecca3; color: #1a1a2e; font-size: 1.8rem; font-weight: bold; padding: 10px 40px; border: 3px solid #fff; border-radius: 15px; cursor: pointer; transition: transform 0.1s; }
 .quiz-btn:active { transform: scale(0.9); }
+.quiz-btn.locked { background: #777 !important; cursor: not-allowed; border-color: #555;}
