@@ -1,9 +1,8 @@
-// Masukkan URL Aplikasi Web Google Apps Script Anda di dalam tanda kutip ini:
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxEeaDFfJtfQqhPrMfr2VpmlQJew4LvYfCYUqG31i-2yXWmTfCRN7i9UmFE8ssgQL5gWg/exec";
+// URL Google Sheets (TIDAK PERLU DIUBAH JIKA ANDA SUDAH MENYIAPKANNYA)
+const GOOGLE_SHEET_URL = "PASTE_URL_WEB_APP_DISINI";
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-
 const W = 1200; const H = 700;
 canvas.width = W; canvas.height = H;
 
@@ -45,7 +44,7 @@ function showMessage(text, color = "#4ecca3") {
     msg.innerText = text; msg.style.color = color;
 }
 
-// --- INISIALISASI UI DINAMIS ---
+// --- UI DINAMIS ---
 function buildShopAndGallery() {
     let shopContainer = document.getElementById('shop-buttons-container');
     let galTower = document.getElementById('tower-gallery-list');
@@ -59,13 +58,14 @@ function buildShopAndGallery() {
                 <span class="tower-cost">${t.cost} Energi</span>
             </button>
         `;
+        let startDmg = t.levels[0].damage || 'AoE';
         galTower.innerHTML += `
             <div class="gallery-card">
                 <div class="card-icon">${t.icon}</div>
                 <div class="card-info">
                     <h4>${t.name}</h4>
                     <span class="badge badge-cost">Harga: ${t.cost} ⭐</span>
-                    <span class="badge badge-dmg">Dmg: ${t.baseDamage}</span>
+                    <span class="badge badge-dmg">Dmg Awal: ${startDmg}</span>
                     <p>${t.desc}</p>
                 </div>
             </div>
@@ -91,8 +91,8 @@ function buildShopAndGallery() {
             <div class="card-info">
                 <h4>${bossType.type.toUpperCase()}</h4>
                 <span class="badge badge-dmg">HP: ${bossType.baseHp}</span>
-                <span class="badge badge-speed">Skill: Hancurkan Menara</span>
-                <p>Monster mematikan! Instant Game Over jika lolos.</p>
+                <span class="badge badge-speed">Skill: Menurunkan Level Menara</span>
+                <p>Boss mematikan! Instant Game Over jika menyentuh benteng.</p>
             </div>
         </div>
     `;
@@ -160,7 +160,6 @@ function updateUI() {
     });
 }
 
-// --- KALKULASI PETA ---
 function distToSegment(px, py, x1, y1, x2, y2) {
     let l2 = (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1);
     if (l2 === 0) return Math.hypot(px-x1, py-y1);
@@ -190,9 +189,13 @@ class Particle {
 function spawnParticles(x, y, color) { for(let i=0; i<10; i++) particles.push(new Particle(x, y, color)); }
 
 class Soldier {
-    constructor(x, y) {
+    constructor(x, y, stats, isLeader) {
         this.x = x + (Math.random()-0.5)*40; this.y = y + (Math.random()-0.5)*40;
-        this.hp = 100; this.damage = towerConfig.barracks.baseDamage; this.radius = 10;
+        this.hp = stats.hp; this.maxHp = stats.hp;
+        this.damage = stats.damage; 
+        this.radius = stats.radius;
+        this.color = stats.color;
+        this.isLeader = isLeader;
         this.isDead = false;
     }
     attack(enemiesList) {
@@ -202,11 +205,11 @@ class Soldier {
                 e.takeDamage(this.damage); hit = true;
             }
         }
-        if(hit) { spawnParticles(this.x, this.y, '#27ae60'); sfx.hit(); }
+        if(hit) { spawnParticles(this.x, this.y, this.color); sfx.hit(); }
     }
     draw() {
-        ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'lightgreen'; ctx.fillRect(this.x - 10, this.y - 15, 20 * (this.hp / 100), 4);
+        ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'lightgreen'; ctx.fillRect(this.x - 10, this.y - 15, 20 * (this.hp / this.maxHp), 4);
     }
 }
 
@@ -224,7 +227,8 @@ class Enemy {
         this.color = typeParams.color;
         
         this.abilityTimer = 0; this.isCasting = false;
-        this.slowTimer = 0; this.burnTimer = 0; this.burnDamage = 0;
+        this.slowTimer = 0; this.slowAmount = 0; 
+        this.burnTimer = 0; this.burnDamage = 0;
     }
 
     takeDamage(amount) {
@@ -245,8 +249,12 @@ class Enemy {
             }
         }
 
-        if (this.slowTimer > 0) { this.slowTimer--; this.speed = this.normalSpeed * 0.5; } 
-        else { this.speed = this.normalSpeed; }
+        // Variabel Slow yang dapat disesuaikan (dari towerConfig)
+        if (this.slowTimer > 0) { 
+            this.slowTimer--; 
+        } else {
+            this.slowAmount = 0; // Hilang efek slow
+        }
 
         let blocked = false;
         for (let i = soldiers.length - 1; i >= 0; i--) {
@@ -262,7 +270,8 @@ class Enemy {
             }
         }
         
-        this.speed = (blocked || this.isCasting) ? 0 : this.speed;
+        let activeSpeed = this.normalSpeed * (1 - this.slowAmount);
+        this.speed = (blocked || this.isCasting) ? 0 : activeSpeed;
 
         if (this.pathIndex < currentPath.length) {
             if(!blocked && !this.isCasting) {
@@ -279,17 +288,34 @@ class Enemy {
                 }
             }
 
+            // SKILL BOSS BARU: DOWNGRADE TOWER
             if (this.isBoss && towers.length > 0) {
                 this.abilityTimer++;
-                if (this.abilityTimer === 300) { this.isCasting = true; showMessage("⚠️ BOSS BERSIAK!", "orange"); sfx.bossWarn(); }
+                if (this.abilityTimer === 300) { 
+                    this.isCasting = true; showMessage("⚠️ BOSS BERSIAP MENYERANG MENARA!", "orange"); sfx.bossWarn(); 
+                }
                 if (this.abilityTimer >= 400) { 
                     this.isCasting = false; this.abilityTimer = 0;
-                    for (let i = towers.length - 1; i >= 0; i--) {
-                        if (Math.hypot(this.x - towers[i].x, this.y - towers[i].y) < 180) {
-                            spawnParticles(towers[i].x, towers[i].y, 'red');
-                            towers.splice(i, 1); sfx.bossDestroy();
-                            showMessage("⚠️ MENARA HANCUR!", "red");
-                            break; 
+                    
+                    // Ambil daftar menara di area radius 180
+                    let inRangeTowers = towers.filter(t => Math.hypot(this.x - t.x, this.y - t.y) < 180);
+                    
+                    if (inRangeTowers.length > 0) {
+                        // Pilih 1 menara secara acak dari yang di area
+                        let t = inRangeTowers[Math.floor(Math.random() * inRangeTowers.length)];
+                        
+                        if (t.tier > 1) {
+                            t.downgrade(); // Turun level
+                            spawnParticles(t.x, t.y, 'orange');
+                            sfx.bossDestroy();
+                            showMessage(`⚠️ LEVEL ${towerConfig[t.type].name} DITURUNKAN BOSS!`, "orange");
+                        } else {
+                            // Hancurkan prajurit jika itu barak
+                            if(t.type === 'barracks') t.mySoldiers.forEach(s => s.isDead = true);
+                            towers = towers.filter(tower => tower !== t);
+                            spawnParticles(t.x, t.y, 'red');
+                            sfx.bossDestroy();
+                            showMessage("⚠️ 1 MENARAMU HANCUR!", "red");
                         }
                     }
                 }
@@ -348,20 +374,42 @@ class Enemy {
 
 class Tower {
     constructor(x, y, typeId) {
-        let conf = towerConfig[typeId];
         this.x = x; this.y = y; this.type = typeId; this.tier = 1;
-        this.range = conf.range; this.cooldown = conf.cooldown; 
-        this.baseDamage = conf.baseDamage; this.effect = conf.effect;
-        this.upgradeCost = conf.cost * 2;
+        this.color = typeId === 'ice' ? '#a2d5f2' : typeId === 'fire' ? '#ff7b54' : typeId === 'lightning' ? '#ffd700' : '#27ae60';
         
-        if(typeId === 'barracks') {
-            this.color = '#27ae60'; this.mySoldiers = [];
-            this.spawnX = 0; this.spawnY = 0; this.calculateSpawnPoint();
-            for(let i=0; i<3; i++) this.spawnOneSoldier();
-        } else {
-            this.color = typeId === 'ice' ? '#a2d5f2' : typeId === 'fire' ? '#ff7b54' : '#ffd700';
-        }
         this.timer = 0;
+        this.mySoldiers = [];
+        this.spawnX = 0; this.spawnY = 0; 
+        if(typeId === 'barracks') this.calculateSpawnPoint();
+        
+        this.applyStats();
+
+        if(typeId === 'barracks') {
+            for(let i=0; i<this.spawnCount; i++) this.spawnOneSoldier();
+        } 
+    }
+
+    applyStats() {
+        // Menarik data langsung dari towers.js berdasarkan tingkat (Tier)
+        let conf = towerConfig[this.type].levels[this.tier - 1];
+        this.range = conf.range;
+        this.cooldown = conf.cooldown;
+        this.upgradeCost = conf.upgradeCost;
+
+        if (this.type === 'barracks') {
+            this.spawnCount = conf.spawnCount;
+            this.soldierStats = conf.soldier;
+            this.hasLeader = conf.hasLeader;
+            this.leaderStats = conf.leader;
+        } else {
+            this.damage = conf.damage;
+            this.effect = conf.effect;
+        }
+    }
+
+    downgrade() {
+        this.tier--;
+        this.applyStats();
     }
 
     calculateSpawnPoint() {
@@ -373,14 +421,24 @@ class Tower {
     }
 
     spawnOneSoldier() {
-        let s = new Soldier(this.spawnX, this.spawnY);
+        let isLeader = false;
+        let stats = this.soldierStats;
+
+        if (this.hasLeader) {
+            let leaderAlive = this.mySoldiers.some(s => s.isLeader && !s.isDead);
+            if (!leaderAlive) {
+                isLeader = true;
+                stats = this.leaderStats;
+            }
+        }
+        let s = new Soldier(this.spawnX, this.spawnY, stats, isLeader);
         this.mySoldiers.push(s); soldiers.push(s);
     }
 
     update() {
         if(this.type === 'barracks') {
             this.mySoldiers = this.mySoldiers.filter(s => !s.isDead);
-            if(this.mySoldiers.length < 3) {
+            if(this.mySoldiers.length < this.spawnCount) {
                 this.timer++;
                 if(this.timer >= this.cooldown) { this.spawnOneSoldier(); this.timer = 0; }
             } else { this.timer = 0; }
@@ -395,7 +453,7 @@ class Tower {
                 if (dist < closestDist) { closestDist = dist; target = enemy; }
             }
             if (target) {
-                projectiles.push(new Projectile(this.x, this.y, target, this.type, this.tier, this.baseDamage, this.effect));
+                projectiles.push(new Projectile(this.x, this.y, target, this.type, this.damage, this.effect));
                 sfx.shoot(); this.timer = 0;
             }
         }
@@ -419,11 +477,11 @@ class Tower {
 }
 
 class Projectile {
-    constructor(x, y, target, type, tier, baseDamage, effect) {
+    constructor(x, y, target, type, damage, effect) {
         this.x = x; this.y = y; this.target = target; this.type = type;
         this.speed = 15;
-        this.damage = baseDamage * (1 + (tier-1)*0.5); 
-        this.effect = effect; this.tier = tier;
+        this.damage = damage; 
+        this.effect = effect;
     }
 
     update() {
@@ -432,14 +490,22 @@ class Projectile {
         let distance = Math.hypot(dx, dy);
 
         if (distance < this.speed) {
-            if (this.effect === 'pierce' && this.target.type === 'tank') this.damage *= 2; 
+            let finalDmg = this.damage;
 
-            this.target.takeDamage(this.damage);
+            // Efek Khusus dari towers.js
+            if(this.effect.type === 'pierce' && this.target.type === 'tank') {
+                finalDmg *= this.effect.multiplier;
+            }
 
-            if (this.effect === 'slow') this.target.slowTimer = 120; 
-            if (this.effect === 'burn') {
-                this.target.burnTimer = 180; 
-                this.target.burnDamage = 5 * this.tier; 
+            this.target.takeDamage(finalDmg);
+
+            if (this.effect.type === 'slow') {
+                this.target.slowTimer = this.effect.duration;
+                this.target.slowAmount = this.effect.amount;
+            }
+            if (this.effect.type === 'burn') {
+                this.target.burnTimer = this.effect.duration;
+                this.target.burnDamage = this.effect.tickDamage;
             }
             
             this.active = false; sfx.hit();
@@ -485,7 +551,7 @@ canvas.addEventListener('pointerdown', function(e) {
             if(Math.hypot(mouseX - t.x, mouseY - t.y) < 40) {
                 if(t.tier < 3 && currentEnergy >= t.upgradeCost) {
                     currentEnergy -= t.upgradeCost;
-                    t.tier++; t.range *= 1.15; t.upgradeCost *= 2;
+                    t.tier++; t.applyStats(); // Tarik data terbaru dari towers.js
                     sfx.upgrade(); spawnParticles(t.x, t.y, '#ffd700'); updateUI();
                     showMessage(`${towerConfig[t.type].name} Naik ke Lv.${t.tier}!`);
                 } else if(t.tier === 3) {
@@ -536,16 +602,14 @@ function checkWaveProgress() {
 }
 
 // ==========================================
-// INTEGRASI API GOOGLE SHEETS (LEADERBOARD)
+// INTEGRASI API GOOGLE SHEETS
 // ==========================================
 function renderLeaderboard(hofData) {
     let listHTML = "<ol style='padding-left: 20px; text-align:left;'>";
     if(!hofData || hofData.length === 0) {
         listHTML += "<li>Belum ada data juara di Server.</li>";
     } else {
-        hofData.forEach(e => { 
-            listHTML += `<li style='margin-bottom:8px'><b>${e.name}</b> : ${e.score} Pts</li>`; 
-        });
+        hofData.forEach(e => { listHTML += `<li style='margin-bottom:8px'><b>${e.name}</b> : ${e.score} Pts</li>`; });
     }
     listHTML += "</ol>";
     document.getElementById('leaderboard-list').innerHTML = listHTML;
@@ -558,21 +622,16 @@ function handleEndGame(isWin) {
     document.getElementById('final-score-text').innerText = `Skor Akhir ${teamName}: ${score}`;
     document.getElementById('final-score-text').classList.remove('hidden');
     
-    // UI Loading State
     document.getElementById('leaderboard-list').innerHTML = "<p style='text-align:center; color:#f9d342;'>Menyimpan skor ke server... 📡</p>";
     document.getElementById('hof-gameover-controls').classList.add('hidden');
     document.getElementById('hof-close-btn').classList.add('hidden');
     document.getElementById('hof-screen').classList.remove('hidden');
 
-    // POST ke Google Sheets
     let formData = new URLSearchParams();
     formData.append('name', teamName);
     formData.append('score', score);
 
-    fetch(GOOGLE_SHEET_URL, {
-        method: 'POST',
-        body: formData
-    })
+    fetch(GOOGLE_SHEET_URL, { method: 'POST', body: formData })
     .then(response => response.json())
     .then(data => {
         renderLeaderboard(data.leaderboard);
@@ -584,7 +643,7 @@ function handleEndGame(isWin) {
     });
 }
 
-// --- RENDER PETA ---
+// --- RENDER ---
 function drawMap() {
     ctx.strokeStyle = "rgba(255, 255, 255, 0.05)"; ctx.lineWidth = 1;
     for(let i=0; i<W; i+=40) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,H); ctx.stroke(); }
@@ -685,7 +744,6 @@ function showHoF() {
     document.getElementById('leaderboard-list').innerHTML = "<p style='text-align:center; color:#f9d342;'>Mengambil data dari server... 📡</p>";
     document.getElementById('hof-screen').classList.remove('hidden');
 
-    // GET dari Google Sheets
     fetch(GOOGLE_SHEET_URL)
     .then(response => response.json())
     .then(data => { renderLeaderboard(data.leaderboard); })
