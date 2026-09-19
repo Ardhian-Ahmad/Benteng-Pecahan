@@ -3,23 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Benteng Pecahan - Tower Defense</title>
+    <title>Benteng Pecahan - Edisi Spesial Kelas 6</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Layar Petunjuk -->
+    <!-- Layar Awal & Registrasi Tim -->
     <div id="start-screen">
         <h1 class="game-title">🏰 Benteng Pecahan</h1>
         <div class="instructions">
-            <h3>Cara Bermain & Aturan Baru:</h3>
+            <h3>Strategi Bertahan:</h3>
             <ul>
-                <li>1. Jawab soal untuk Energi. <b>HATI-HATI: Jawaban SALAH = Energi -1 !</b></li>
-                <li>2. <b>Menara Es:</b> Cepat tapi lemah. <b>Menara Petir:</b> Sangat lambat tapi mematikan.</li>
-                <li>3. Hati-hati di Wave terakhir setiap Level. <b>BOSS bisa memakan menaramu!</b></li>
-                <li>4. Kumpulkan SKOR tertinggi untuk masuk Hall of Fame.</li>
+                <li>1. <b>Kuis Energi:</b> Jawab soal pecahan. Benar (+1 Energi), Salah (-1 Energi).</li>
+                <li>2. <b>Prajurit Penahan (Baru):</b> Beli Pasukan untuk memblokir monster gesit di jalur!</li>
+                <li>3. <b>Sistem Upgrade:</b> Sentuh menara yang sudah dibangun untuk menaikkan levelnya (Butuh Energi).</li>
+                <li>4. <b>Boss Area (AoE):</b> Jauhi aura merah Boss, atau menaramu akan dihancurkan seketika!</li>
+                <li>5. <b>Peta Dinamis:</b> Setiap Level memiliki rute (map) yang berbeda.</li>
             </ul>
         </div>
-        <button id="start-btn" onclick="startGame()" ontouchstart="startGame()">MULAI PERTAHANAN!</button>
+        <input type="text" id="team-name-input" placeholder="Masukkan Nama Tim (Misal: Tim Garuda)" maxlength="15">
+        <button id="start-btn" onclick="startGame()" ontouchstart="startGame()">MULAI GAME!</button>
     </div>
 
     <!-- Layar Pengumuman -->
@@ -28,14 +30,13 @@
         <p id="announce-desc">Persiapkan dirimu...</p>
     </div>
 
-    <!-- Layar Hall of Fame (Papan Peringkat) -->
+    <!-- Papan Peringkat (Hall of Fame) -->
     <div id="hof-screen" class="hidden">
         <h1 class="game-title" style="margin-bottom: 5px;">🏆 Hall of Fame</h1>
-        <h2 id="final-score-text" style="color: white; margin-bottom: 20px;">Skor Akhir Tim: 0</h2>
-        <div id="leaderboard-list" class="instructions">
-            <!-- Daftar skor masuk sini -->
-        </div>
-        <button id="restart-btn" onclick="location.reload()" ontouchstart="location.reload()">MAIN LAGI</button>
+        <h2 id="final-score-text" style="color: #4ecca3; margin-bottom: 20px;">Skor Akhir Tim: 0</h2>
+        <div id="leaderboard-list" class="instructions" style="width: 350px;"></div>
+        <button id="restart-btn" onclick="playAgain()" ontouchstart="playAgain()">MAIN LAGI (Tim Sama)</button>
+        <button id="new-team-btn" onclick="location.reload()" ontouchstart="location.reload()" style="margin-top: 15px; background: #9b59b6;">GANTI TIM BARU</button>
     </div>
 
     <div id="game-container">
@@ -44,6 +45,7 @@
             <div class="stat-box">HP: <span id="base-hp" class="highlight-text">10</span> ❤️</div>
             <div id="wave-display" style="font-size: 1.5rem; color: #f9d342; font-weight: bold;">Lvl 1 - Wave 1</div>
             <div class="stat-box">Skor: <span id="score-display" class="highlight-text" style="color: #4ecca3;">0</span> 🏆</div>
+            <div class="stat-box">Tim: <span id="team-display" style="color: #fff;">-</span></div>
             <div class="stat-box">Energi: <span id="energy-display" class="highlight-text">0</span> ⭐</div>
         </div>
 
@@ -54,22 +56,25 @@
 
         <!-- Toko Menara -->
         <div id="shop-panel">
-            <h3 class="shop-title">Toko Menara</h3>
+            <h3 class="shop-title">Gudang Senjata</h3>
             <button class="tower-btn" data-type="ice" data-cost="1" onclick="selectTower('ice', 1)" ontouchstart="selectTower('ice', 1)">
-                <span class="tower-name">❄️ Es (Cepat)</span>
-                <span class="tower-cost">1 Energi</span>
+                <span class="tower-name">❄️ Es (Pelambat)</span><span class="tower-cost">1 Energi</span>
             </button>
             <button class="tower-btn" data-type="fire" data-cost="2" onclick="selectTower('fire', 2)" ontouchstart="selectTower('fire', 2)">
-                <span class="tower-name">🔥 Api (Sedang)</span>
-                <span class="tower-cost">2 Energi</span>
+                <span class="tower-name">🔥 Api (Standar)</span><span class="tower-cost">2 Energi</span>
             </button>
             <button class="tower-btn" data-type="lightning" data-cost="4" onclick="selectTower('lightning', 4)" ontouchstart="selectTower('lightning', 4)">
-                <span class="tower-name">⚡ Petir (Lambat)</span>
-                <span class="tower-cost">4 Energi</span>
+                <span class="tower-name">⚡ Petir (Maut)</span><span class="tower-cost">4 Energi</span>
             </button>
+            <button class="tower-btn" data-type="barracks" data-cost="3" onclick="selectTower('barracks', 3)" ontouchstart="selectTower('barracks', 3)" style="background: #27ae60;">
+                <span class="tower-name">🛡️ Barak Pasukan</span><span class="tower-cost">3 Energi (Memblokir)</span>
+            </button>
+            <div style="margin-top: 10px; font-size: 0.8rem; color: #ccc; text-align: center;">
+                <i>*Sentuh menaramu di peta untuk Upgrade!</i>
+            </div>
         </div>
 
-        <!-- Panel Kuis Edukatif -->
+        <!-- Panel Kuis -->
         <div id="quiz-panel">
             <div id="question-text">Memuat soal...</div>
             <div id="quiz-options">
