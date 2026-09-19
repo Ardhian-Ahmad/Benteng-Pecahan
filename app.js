@@ -1,3 +1,6 @@
+// Masukkan URL Aplikasi Web Google Apps Script Anda di dalam tanda kutip ini:
+const GOOGLE_SHEET_URL = "PASTE_URL_WEB_APP_DISINI";
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -42,13 +45,12 @@ function showMessage(text, color = "#4ecca3") {
     msg.innerText = text; msg.style.color = color;
 }
 
-// --- INISIALISASI UI DINAMIS DARI MODUL ---
+// --- INISIALISASI UI DINAMIS ---
 function buildShopAndGallery() {
     let shopContainer = document.getElementById('shop-buttons-container');
     let galTower = document.getElementById('tower-gallery-list');
     let galEnemy = document.getElementById('enemy-gallery-list');
     
-    // Bangun Toko
     shopContainer.innerHTML = '';
     Object.values(towerConfig).forEach(t => {
         shopContainer.innerHTML += `
@@ -57,7 +59,6 @@ function buildShopAndGallery() {
                 <span class="tower-cost">${t.cost} Energi</span>
             </button>
         `;
-        // Bangun Galeri Tower
         galTower.innerHTML += `
             <div class="gallery-card">
                 <div class="card-icon">${t.icon}</div>
@@ -71,7 +72,6 @@ function buildShopAndGallery() {
         `;
     });
 
-    // Bangun Galeri Musuh (Dari file enemies.js)
     galEnemy.innerHTML = '';
     enemyTypesArr.forEach(e => {
         galEnemy.innerHTML += `
@@ -160,7 +160,7 @@ function updateUI() {
     });
 }
 
-// --- MAP CALCULATION ---
+// --- KALKULASI PETA ---
 function distToSegment(px, py, x1, y1, x2, y2) {
     let l2 = (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1);
     if (l2 === 0) return Math.hypot(px-x1, py-y1);
@@ -195,13 +195,11 @@ class Soldier {
         this.hp = 100; this.damage = towerConfig.barracks.baseDamage; this.radius = 10;
         this.isDead = false;
     }
-    // Soldier menyerang Area Kecil (AoE)
     attack(enemiesList) {
         let hit = false;
         for(let e of enemiesList) {
-            if(Math.hypot(this.x - e.x, this.y - e.y) < 50) { // Radius AoE 50
-                e.takeDamage(this.damage);
-                hit = true;
+            if(Math.hypot(this.x - e.x, this.y - e.y) < 50) { 
+                e.takeDamage(this.damage); hit = true;
             }
         }
         if(hit) { spawnParticles(this.x, this.y, '#27ae60'); sfx.hit(); }
@@ -226,11 +224,7 @@ class Enemy {
         this.color = typeParams.color;
         
         this.abilityTimer = 0; this.isCasting = false;
-        
-        // Status Efek Tower Baru
-        this.slowTimer = 0;
-        this.burnTimer = 0;
-        this.burnDamage = 0;
+        this.slowTimer = 0; this.burnTimer = 0; this.burnDamage = 0;
     }
 
     takeDamage(amount) {
@@ -243,23 +237,16 @@ class Enemy {
     }
 
     update() {
-        // Efek Terbakar (Burn DoT)
         if (this.burnTimer > 0) {
             this.burnTimer--;
-            if(this.burnTimer % 30 === 0) { // Kena damage tiap 0.5 detik
+            if(this.burnTimer % 30 === 0) { 
                 this.takeDamage(this.burnDamage);
-                spawnParticles(this.x, this.y, 'orange');
-                sfx.burn();
+                spawnParticles(this.x, this.y, 'orange'); sfx.burn();
             }
         }
 
-        // Efek Melambat (Slow)
-        if (this.slowTimer > 0) {
-            this.slowTimer--;
-            this.speed = this.normalSpeed * 0.5; // Melambat 50%
-        } else {
-            this.speed = this.normalSpeed;
-        }
+        if (this.slowTimer > 0) { this.slowTimer--; this.speed = this.normalSpeed * 0.5; } 
+        else { this.speed = this.normalSpeed; }
 
         let blocked = false;
         for (let i = soldiers.length - 1; i >= 0; i--) {
@@ -268,7 +255,7 @@ class Enemy {
                 blocked = true;
                 if (frameCount % 60 === 0) { 
                     s.hp -= (this.isBoss ? 50 : 15);
-                    s.attack(enemies); // Soldier memukul area
+                    s.attack(enemies);
                 }
                 if (s.hp <= 0) { s.isDead = true; soldiers.splice(i, 1); }
                 break;
@@ -349,7 +336,6 @@ class Enemy {
             ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
         }
 
-        // Tanda Terbakar (Burn Indicator)
         if(this.burnTimer > 0) {
             ctx.fillStyle = 'orange'; ctx.beginPath(); ctx.moveTo(0, -this.radius); ctx.lineTo(8, -this.radius-15); ctx.lineTo(-8, -this.radius-15); ctx.closePath(); ctx.fill();
         }
@@ -437,8 +423,7 @@ class Projectile {
         this.x = x; this.y = y; this.target = target; this.type = type;
         this.speed = 15;
         this.damage = baseDamage * (1 + (tier-1)*0.5); 
-        this.effect = effect;
-        this.tier = tier;
+        this.effect = effect; this.tier = tier;
     }
 
     update() {
@@ -447,19 +432,14 @@ class Projectile {
         let distance = Math.hypot(dx, dy);
 
         if (distance < this.speed) {
-            // APPLY NEW SKILL EFFECTS
-            if (this.effect === 'pierce' && this.target.type === 'tank') {
-                this.damage *= 2; // Damage x2 lawan Tank
-            }
+            if (this.effect === 'pierce' && this.target.type === 'tank') this.damage *= 2; 
 
             this.target.takeDamage(this.damage);
 
-            if (this.effect === 'slow') {
-                this.target.slowTimer = 120; // 2 detik slow (60fps x 2)
-            }
+            if (this.effect === 'slow') this.target.slowTimer = 120; 
             if (this.effect === 'burn') {
-                this.target.burnTimer = 180; // 3 detik burn
-                this.target.burnDamage = 5 * this.tier; // Makin tinggi tier, bakar makin sakit
+                this.target.burnTimer = 180; 
+                this.target.burnDamage = 5 * this.tier; 
             }
             
             this.active = false; sfx.hit();
@@ -555,35 +535,56 @@ function checkWaveProgress() {
     }
 }
 
+// ==========================================
+// INTEGRASI API GOOGLE SHEETS (LEADERBOARD)
+// ==========================================
+function renderLeaderboard(hofData) {
+    let listHTML = "<ol style='padding-left: 20px; text-align:left;'>";
+    if(!hofData || hofData.length === 0) {
+        listHTML += "<li>Belum ada data juara di Server.</li>";
+    } else {
+        hofData.forEach(e => { 
+            listHTML += `<li style='margin-bottom:8px'><b>${e.name}</b> : ${e.score} Pts</li>`; 
+        });
+    }
+    listHTML += "</ol>";
+    document.getElementById('leaderboard-list').innerHTML = listHTML;
+}
+
 function handleEndGame(isWin) {
     isGameOver = true; isGameWon = isWin;
     document.getElementById('announcement-overlay').classList.add('hidden');
     
-    let hof = JSON.parse(localStorage.getItem('pecahanHOF')) || [];
-    let existingIndex = hof.findIndex(e => e.name === teamName);
-    if(existingIndex !== -1) {
-        if(score > hof[existingIndex].score) hof[existingIndex].score = score;
-    } else {
-        hof.push({ name: teamName, score: score });
-    }
-    hof.sort((a,b) => b.score - a.score);
-    hof = hof.slice(0, 5); 
-    localStorage.setItem('pecahanHOF', JSON.stringify(hof));
-
     document.getElementById('final-score-text').innerText = `Skor Akhir ${teamName}: ${score}`;
     document.getElementById('final-score-text').classList.remove('hidden');
     
-    let listHTML = "<ol style='padding-left: 20px; text-align:left;'>";
-    hof.forEach(e => { listHTML += `<li style='margin-bottom:8px'><b>${e.name}</b> : ${e.score} Pts</li>`; });
-    listHTML += "</ol>";
-    document.getElementById('leaderboard-list').innerHTML = listHTML;
-    
-    document.getElementById('hof-gameover-controls').classList.remove('hidden');
+    // UI Loading State
+    document.getElementById('leaderboard-list').innerHTML = "<p style='text-align:center; color:#f9d342;'>Menyimpan skor ke server... 📡</p>";
+    document.getElementById('hof-gameover-controls').classList.add('hidden');
     document.getElementById('hof-close-btn').classList.add('hidden');
     document.getElementById('hof-screen').classList.remove('hidden');
+
+    // POST ke Google Sheets
+    let formData = new URLSearchParams();
+    formData.append('name', teamName);
+    formData.append('score', score);
+
+    fetch(GOOGLE_SHEET_URL, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        renderLeaderboard(data.leaderboard);
+        document.getElementById('hof-gameover-controls').classList.remove('hidden');
+    })
+    .catch(error => {
+        document.getElementById('leaderboard-list').innerHTML = "<p style='color:red; text-align:center;'>Gagal terhubung ke server Google Sheets.</p>";
+        document.getElementById('hof-gameover-controls').classList.remove('hidden');
+    });
 }
 
-// --- RENDER ---
+// --- RENDER PETA ---
 function drawMap() {
     ctx.strokeStyle = "rgba(255, 255, 255, 0.05)"; ctx.lineWidth = 1;
     for(let i=0; i<W; i+=40) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,H); ctx.stroke(); }
@@ -638,9 +639,7 @@ function gameLoop() {
 }
 
 // --- MENU NAVIGATION CONTROLS ---
-window.onload = () => {
-    buildShopAndGallery(); // Bangun UI dari file towers.js dan enemies.js
-};
+window.onload = () => { buildShopAndGallery(); };
 
 function startGame() {
     let nameInput = document.getElementById('team-name-input').value.trim();
@@ -678,18 +677,21 @@ function hideGallery() {
 }
 
 function showHoF() {
-    let hof = JSON.parse(localStorage.getItem('pecahanHOF')) || [];
-    let listHTML = "<ol style='padding-left: 20px; text-align:left;'>";
-    if(hof.length === 0) listHTML += "<li>Belum ada juara.</li>";
-    hof.forEach(e => { listHTML += `<li style='margin-bottom:8px'><b>${e.name}</b> : ${e.score} Pts</li>`; });
-    listHTML += "</ol>";
-    document.getElementById('leaderboard-list').innerHTML = listHTML;
-    
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('final-score-text').classList.add('hidden');
     document.getElementById('hof-gameover-controls').classList.add('hidden');
     document.getElementById('hof-close-btn').classList.remove('hidden');
+    
+    document.getElementById('leaderboard-list').innerHTML = "<p style='text-align:center; color:#f9d342;'>Mengambil data dari server... 📡</p>";
     document.getElementById('hof-screen').classList.remove('hidden');
+
+    // GET dari Google Sheets
+    fetch(GOOGLE_SHEET_URL)
+    .then(response => response.json())
+    .then(data => { renderLeaderboard(data.leaderboard); })
+    .catch(error => {
+        document.getElementById('leaderboard-list').innerHTML = "<p style='color:red; text-align:center;'>Gagal terhubung ke server Google Sheets.</p>";
+    });
 }
 
 function hideHoF() {
