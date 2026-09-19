@@ -1,14 +1,11 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// ENGINE MENGGUNAKAN RESOLUSI INTERNAL TETAP
-// Ini memastikan kecepatan dan jarak tembak menara 100% sama di HP maupun PC
 const W = 1200;
 const H = 700;
 canvas.width = W;
 canvas.height = H;
 
-// Fungsi canggih untuk mengubah sentuhan jari di layar ke koordinat internal mesin game
 function getPointerPos(e) {
     let rect = canvas.getBoundingClientRect();
     let scaleX = canvas.width / rect.width;
@@ -17,19 +14,14 @@ function getPointerPos(e) {
     let clientX = e.clientX;
     let clientY = e.clientY;
     
-    // Support sentuhan jari di HP/Tablet (Touch Screen)
     if (e.touches && e.touches.length > 0) {
         clientX = e.touches[0].clientX;
         clientY = e.touches[0].clientY;
     }
-
-    return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY
-    };
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
 }
 
-// --- SISTEM AUDIO (Web Audio API) ---
+// --- AUDIO ---
 let audioCtx;
 function initAudio() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -37,8 +29,7 @@ function initAudio() {
 }
 function playSound(freq, type, duration, vol = 0.1) {
     if (!audioCtx) return;
-    let osc = audioCtx.createOscillator();
-    let gain = audioCtx.createGain();
+    let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
     osc.type = type; osc.frequency.value = freq;
     osc.connect(gain); gain.connect(audioCtx.destination);
     osc.start(); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
@@ -63,10 +54,11 @@ function showMessage(text, color = "#4ecca3") {
 let gameStarted = false; let isGameWon = false; let isGameOver = false;
 let teamName = "Tim Misterius";
 let baseHp = 10; let currentEnergy = 0; let score = 0; let frameCount = 0;
+
 let enemies = []; let towers = []; let projectiles = []; let soldiers = []; let particles = [];
 let placingTowerType = null; let placingTowerCost = 0;
 
-// --- SISTEM LEVEL, WAVE & PETA ---
+// --- SISTEM LEVEL ---
 const levelConfig = [
     { level: 1, maxWaves: 5, baseEnemyCount: 4, hpMult: 1.0, speedMult: 1.0 },
     { level: 2, maxWaves: 6, baseEnemyCount: 6, hpMult: 1.5, speedMult: 1.1 },
@@ -82,20 +74,11 @@ function loadMapForLevel(level) {
     if (level === 2) currentPath = [{x:-50, y:H*0.8}, {x:W*0.2, y:H*0.8}, {x:W*0.2, y:H*0.3}, {x:W*0.5, y:H*0.3}, {x:W*0.5, y:H*0.8}, {x:W*0.8, y:H*0.8}, {x:W*0.8, y:-50}];
 }
 
-// --- BANK SOAL EDUKASI ---
-const quizBank = [
-    { q: "1/2 + 1/4 = ...", options: ["3/4", "1/4", "1"], answer: "3/4" },
-    { q: "Sederhanakan 6/8", options: ["1/4", "3/4", "1/2"], answer: "3/4" },
-    { q: "1 - 1/3 = ...", options: ["1/3", "2/3", "1"], answer: "2/3" },
-    { q: "Senilai dengan 1/3", options: ["2/6", "3/4", "4/5"], answer: "2/6" },
-    { q: "Desimal dari 1/2", options: ["0.5", "0.2", "1.2"], answer: "0.5" },
-    { q: "Persen dari 1/4", options: ["25%", "40%", "50%"], answer: "25%" },
-    { q: "2/5 + 1/5 = ...", options: ["3/5", "3/10", "2/5"], answer: "3/5" },
-    { q: "1/2 x 1/2 = ...", options: ["1/4", "1", "2/4"], answer: "1/4" }
-];
+// --- FUNGSI KUIS (Mengambil dari questions.js) ---
 let currentQuestion = null; let isAnswering = false;
 
 function loadNextQuestion() {
+    // quizBank dipanggil dari file questions.js
     currentQuestion = quizBank[Math.floor(Math.random() * quizBank.length)];
     document.getElementById('question-text').innerText = "Soal: " + currentQuestion.q;
     let shuffledOptions = [...currentQuestion.options].sort(() => Math.random() - 0.5);
@@ -172,6 +155,7 @@ class Soldier {
     constructor(x, y) {
         this.x = x + (Math.random()-0.5)*40; this.y = y + (Math.random()-0.5)*40;
         this.hp = 100; this.damage = 10; this.radius = 10;
+        this.isDead = false;
     }
     draw() {
         ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
@@ -185,14 +169,11 @@ class Enemy {
         this.x = currentPath[0].x; this.y = currentPath[0].y;
         this.pathIndex = 1; this.isDead = false;
         
-        this.type = typeParams.type;
-        this.isBoss = typeParams.isBoss;
-        
+        this.type = typeParams.type; this.isBoss = typeParams.isBoss;
         this.normalSpeed = typeParams.baseSpeed * (this.isBoss ? 1 : config.speedMult);
         this.speed = this.normalSpeed;
         this.maxHp = typeParams.baseHp * (this.isBoss ? 1 : config.hpMult);
-        this.hp = this.maxHp;
-        this.radius = typeParams.radius;
+        this.hp = this.maxHp; this.radius = typeParams.radius;
         this.color = typeParams.color;
         this.abilityTimer = 0; this.isCasting = false;
     }
@@ -201,14 +182,17 @@ class Enemy {
         let blocked = false;
         for (let i = soldiers.length - 1; i >= 0; i--) {
             let s = soldiers[i];
-            if (Math.hypot(this.x - s.x, this.y - s.y) < this.radius + s.radius + 5) {
+            if (!s.isDead && Math.hypot(this.x - s.x, this.y - s.y) < this.radius + s.radius + 5) {
                 blocked = true;
                 if (frameCount % 30 === 0) { 
                     s.hp -= (this.isBoss ? 50 : 15);
                     this.hp -= s.damage;
                     spawnParticles(this.x, this.y, '#fff');
                 }
-                if (s.hp <= 0) soldiers.splice(i, 1);
+                if (s.hp <= 0) {
+                    s.isDead = true; 
+                    soldiers.splice(i, 1);
+                }
                 break;
             }
         }
@@ -266,8 +250,7 @@ class Enemy {
         }
 
         ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.rotation || 0);
+        ctx.translate(this.x, this.y); ctx.rotate(this.rotation || 0);
 
         if (this.type === 'normal') {
             ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill();
@@ -279,8 +262,7 @@ class Enemy {
             ctx.beginPath(); ctx.moveTo(this.radius+5, 0); ctx.lineTo(-this.radius, -this.radius); ctx.lineTo(-this.radius/2, 0); ctx.lineTo(-this.radius, this.radius); ctx.closePath(); ctx.fill();
         } 
         else if (this.type === 'tank') {
-            ctx.fillStyle = this.color;
-            ctx.fillRect(-this.radius, -this.radius, this.radius*2, this.radius*2);
+            ctx.fillStyle = this.color; ctx.fillRect(-this.radius, -this.radius, this.radius*2, this.radius*2);
             ctx.fillStyle = 'gray'; 
             ctx.fillRect(-this.radius-5, -this.radius/2, 5, this.radius); ctx.fillRect(this.radius, -this.radius/2, 5, this.radius);
         } 
@@ -292,7 +274,6 @@ class Enemy {
         }
 
         ctx.restore();
-
         ctx.fillStyle = 'red'; ctx.fillRect(this.x - 15, this.y - this.radius - 15, 30, 5);
         ctx.fillStyle = 'lightgreen'; ctx.fillRect(this.x - 15, this.y - this.radius - 15, 30 * (this.hp / this.maxHp), 5);
     }
@@ -304,8 +285,14 @@ class Tower {
         this.upgradeCost = type === 'barracks' ? 3 : type === 'ice' ? 2 : type === 'fire' ? 3 : 5;
         
         if(type === 'barracks') {
-            this.range = 0; this.cooldown = 400; this.color = '#27ae60';
-            this.spawnSoldiers();
+            this.range = 0; 
+            this.cooldown = 180; // 3 detik respawn per prajurit
+            this.color = '#27ae60';
+            this.mySoldiers = [];
+            this.spawnX = 0; this.spawnY = 0;
+            this.calculateSpawnPoint();
+            // Munculkan 3 pasukan di awal
+            for(let i=0; i<3; i++) this.spawnOneSoldier();
         } else {
             this.range = type === 'ice' ? 140 : type === 'fire' ? 160 : 220;
             this.cooldown = type === 'ice' ? 20 : type === 'fire' ? 60 : 150; 
@@ -314,19 +301,35 @@ class Tower {
         this.timer = 0;
     }
 
-    spawnSoldiers() {
-        let minDist = Infinity, pX = this.x, pY = this.y;
+    calculateSpawnPoint() {
+        let minDist = Infinity;
         for(let i=0; i<currentPath.length-1; i++) {
             let d = distToSegment(this.x, this.y, currentPath[i].x, currentPath[i].y, currentPath[i+1].x, currentPath[i+1].y);
-            if(d.dist < minDist) { minDist = d.dist; pX = d.px; pY = d.py; }
+            if(d.dist < minDist) { minDist = d.dist; this.spawnX = d.px; this.spawnY = d.py; }
         }
-        for(let i=0; i<3; i++) soldiers.push(new Soldier(pX, pY));
+    }
+
+    spawnOneSoldier() {
+        let s = new Soldier(this.spawnX, this.spawnY);
+        this.mySoldiers.push(s);
+        soldiers.push(s);
     }
 
     update() {
         if(this.type === 'barracks') {
-            this.timer++;
-            if(this.timer >= this.cooldown) { this.spawnSoldiers(); this.timer = 0; }
+            // Bersihkan pasukan yang sudah mati dari daftar absensi barak ini
+            this.mySoldiers = this.mySoldiers.filter(s => !s.isDead);
+            
+            // Limit maksimal 3 pasukan. Jika kurang, mulai menghitung mundur untuk respawn.
+            if(this.mySoldiers.length < 3) {
+                this.timer++;
+                if(this.timer >= this.cooldown) { 
+                    this.spawnOneSoldier(); 
+                    this.timer = 0; 
+                }
+            } else {
+                this.timer = 0; // Reset timer jika pasukan penuh
+            }
             return;
         }
 
@@ -339,8 +342,7 @@ class Tower {
             }
             if (target) {
                 projectiles.push(new Projectile(this.x, this.y, target, this.type, this.tier));
-                sfx.shoot();
-                this.timer = 0;
+                sfx.shoot(); this.timer = 0;
             }
         }
     }
@@ -374,7 +376,6 @@ class Projectile {
 
         if (distance < this.speed) {
             let finalDmg = this.damage;
-            // KELEMAHAN MUSUH
             if(this.type === 'ice' && this.target.type === 'fast') finalDmg *= 2.0;
             if(this.type === 'fire' && this.target.type === 'normal') finalDmg *= 2.0;
             if(this.type === 'lightning' && this.target.type === 'tank') finalDmg *= 2.0;
@@ -401,7 +402,7 @@ class Projectile {
     }
 }
 
-// --- INTERAKSI KANVAS (Pointer Mapping Responsif) ---
+// --- INTERAKSI KANVAS ---
 function selectTower(type, cost) {
     if (currentEnergy >= cost) {
         placingTowerType = type; placingTowerCost = cost;
@@ -409,7 +410,6 @@ function selectTower(type, cost) {
     }
 }
 
-// Menggunakan pointerdown agar mendeteksi mouse klik (PC) dan sentuhan jari (Touch Screen) secara akurat
 canvas.addEventListener('pointerdown', function(e) {
     initAudio();
     let pos = getPointerPos(e);
@@ -519,7 +519,6 @@ function drawMap() {
     for (let i = 1; i < currentPath.length; i++) ctx.lineTo(currentPath[i].x, currentPath[i].y);
     ctx.stroke();
     
-    // Titik awal & akhir peta
     ctx.fillStyle = "#e94560"; ctx.beginPath(); ctx.arc(currentPath[0].x, currentPath[0].y, 30, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = "#4ecca3"; ctx.beginPath(); ctx.arc(currentPath[currentPath.length-1].x, currentPath[currentPath.length-1].y, 40, 0, Math.PI*2); ctx.fill();
 }
