@@ -525,14 +525,21 @@ canvas.addEventListener('pointerdown', function(e) {
 // --- LOGIKA WAVE ---
 function startWave() {
     let config = levelConfig[currentLevelIdx];
-    enemiesToSpawn = config.baseEnemyCount + (currentWave * 2); enemiesSpawned = 0; waveActive = true;
+    enemiesToSpawn = config.baseEnemyCount + (currentWave * 2);
+    enemiesSpawned = 0; waveActive = true;
     document.getElementById('wave-display').innerText = `Lvl ${config.level} - Wave ${currentWave} / ${config.maxWaves}`;
-    document.getElementById('announcement-overlay').classList.add('hidden');
+    
+    // Perubahan: Menggunakan wave-popup dan popup-hidden
+    document.getElementById('wave-popup').classList.add('popup-hidden');
 }
 
 function showAnnouncement(title, desc, timeoutDuration) {
-    document.getElementById('announce-title').innerText = title; document.getElementById('announce-desc').innerText = desc;
-    document.getElementById('announcement-overlay').classList.remove('hidden');
+    document.getElementById('announce-title').innerText = title;
+    document.getElementById('announce-desc').innerText = desc;
+    
+    // Perubahan: Memanggil wave-popup
+    document.getElementById('wave-popup').classList.remove('popup-hidden');
+    
     if(timeoutDuration > 0) setTimeout(startWave, timeoutDuration);
 }
 
@@ -562,16 +569,33 @@ function renderLeaderboard(hofData) {
 }
 
 function handleEndGame(isWin) {
-    isGameOver = true; isGameWon = isWin; document.getElementById('announcement-overlay').classList.add('hidden');
-    document.getElementById('final-score-text').innerText = `Skor Akhir ${teamName}: ${score}`; document.getElementById('final-score-text').classList.remove('hidden');
+    isGameOver = true; isGameWon = isWin;
+    
+    // Perubahan: Menyembunyikan wave-popup jika game over
+    document.getElementById('wave-popup').classList.add('popup-hidden');
+    
+    document.getElementById('final-score-text').innerText = `Skor Akhir ${teamName}: ${score}`;
+    document.getElementById('final-score-text').classList.remove('hidden');
+    
     document.getElementById('leaderboard-list').innerHTML = "<p style='text-align:center; color:#f9d342;'>Menyimpan skor ke server... 📡</p>";
-    document.getElementById('hof-gameover-controls').classList.add('hidden'); document.getElementById('hof-close-btn').classList.add('hidden'); document.getElementById('hof-screen').classList.remove('hidden');
+    document.getElementById('hof-gameover-controls').classList.add('hidden');
+    document.getElementById('hof-close-btn').classList.add('hidden');
+    document.getElementById('hof-screen').classList.remove('hidden');
 
-    let formData = new URLSearchParams(); formData.append('name', teamName); formData.append('score', score);
+    let formData = new URLSearchParams();
+    formData.append('name', teamName);
+    formData.append('score', score);
 
-    fetch(GOOGLE_SHEET_URL, { method: 'POST', body: formData }).then(response => response.json())
-    .then(data => { renderLeaderboard(data.leaderboard); document.getElementById('hof-gameover-controls').classList.remove('hidden'); })
-    .catch(error => { document.getElementById('leaderboard-list').innerHTML = "<p style='color:red; text-align:center;'>Gagal terhubung ke server Google Sheets.</p>"; document.getElementById('hof-gameover-controls').classList.remove('hidden'); });
+    fetch(GOOGLE_SHEET_URL, { method: 'POST', body: formData })
+    .then(response => response.json())
+    .then(data => {
+        renderLeaderboard(data.leaderboard);
+        document.getElementById('hof-gameover-controls').classList.remove('hidden');
+    })
+    .catch(error => {
+        document.getElementById('leaderboard-list').innerHTML = "<p style='color:red; text-align:center;'>Gagal terhubung ke server Google Sheets.</p>";
+        document.getElementById('hof-gameover-controls').classList.remove('hidden');
+    });
 }
 
 // --- RENDER ---
