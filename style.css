@@ -28,7 +28,7 @@ button { touch-action: manipulation; cursor: pointer; }
 .badge-dmg { background: #e94560; color: #fff; }
 .badge-speed { background: #4ecca3; color: #000; }
 
-/* Game UI (Sama seperti sebelumnya) */
+/* Game UI */
 #game-container { position: relative; width: 100vw; height: 100dvh; display: flex; flex-direction: column; overflow: hidden;}
 #top-bar { flex: 0 0 60px; background: rgba(22, 33, 62, 0.95); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 10; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.5); }
 #middle-section { flex: 1 1 0; display: flex; flex-direction: row; overflow: hidden; background: #1a252c;}
@@ -57,9 +57,34 @@ button { touch-action: manipulation; cursor: pointer; }
 .highlight-text { color: #f2a365; font-size: 1.5rem;}
 .message-banner { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 10px 30px; border-radius: 20px; font-size: 1.5rem; color: #4ecca3; font-weight: bold; z-index: 10; pointer-events: none; text-shadow: 1px 1px 2px #000; text-align: center; width:max-content;}
 
-#announcement-overlay { background: rgba(0, 0, 0, 0.85); z-index: 500; }
-#announce-title { font-size: 4.5rem; color: #f9d342; text-shadow: 2px 2px 10px #000; margin-bottom: 20px;}
-#announce-desc { font-size: 2rem; color: #4ecca3; }
+/* =========================================
+   ANIMASI POPUP WAVE (Toast Banner) 
+   ========================================= */
+#wave-popup {
+    position: absolute;
+    top: 80px; /* Melayang pas di bawah top-bar */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(22, 33, 62, 0.95);
+    border: 3px solid #f9d342;
+    padding: 15px 40px;
+    border-radius: 20px;
+    text-align: center;
+    z-index: 500;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+    transition: all 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Efek memantul */
+    pointer-events: none; /* Klik tembus ke map di bawahnya */
+    opacity: 1;
+}
+
+#wave-popup.popup-hidden {
+    top: -150px; /* Sembunyi di atas layar */
+    opacity: 0;
+    transform: translateX(-50%) scale(0.5); /* Mengecil saat hilang */
+}
+
+#announce-title { font-size: 2.5rem; color: #f9d342; margin-bottom: 5px; text-shadow: 1px 1px 5px #000; }
+#announce-desc { font-size: 1.2rem; color: #4ecca3; font-weight: bold; }
 
 .instructions { background: rgba(0,0,0,0.5); padding: 25px; border-radius: 15px; margin-bottom: 30px; border: 2px solid #4b5d67; text-align: left; }
 .instructions li { margin-bottom: 8px; list-style: none; }
@@ -79,6 +104,11 @@ button { touch-action: manipulation; cursor: pointer; }
     #question-text { font-size: 1.4rem; margin-bottom: 10px;}
     .quiz-btn { font-size: 1.3rem; padding: 8px 20px;}
     .gallery-container { flex-direction: column; height: 75vh;}
+    
+    /* Penyesuaian Popup di HP */
+    #wave-popup { width: 80%; padding: 10px 20px; top: 60px; }
+    #announce-title { font-size: 1.8rem; }
+    #announce-desc { font-size: 1rem; }
 }
 @media (max-height: 500px) {
     #top-bar { height: 40px; }
