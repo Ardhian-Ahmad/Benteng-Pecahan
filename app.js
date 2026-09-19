@@ -1,4 +1,3 @@
-// --- KONFIGURASI DASAR KANVAS ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -9,10 +8,12 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// --- STATE (KONDISI) GAME ---
+// --- STATE GAME ---
 let gameStarted = false;
+let isGameWon = false;
+let isGameOver = false;
 let baseHp = 10;
-let currentEnergy = 0; // Energi sekarang dalam bentuk poin bulat (1, 2, 3)
+let currentEnergy = 0; 
 let enemies = [];
 let towers = [];
 let projectiles = [];
@@ -20,25 +21,39 @@ let frameCount = 0;
 let placingTowerType = null;
 let placingTowerCost = 0;
 
-// --- BANK SOAL PECAHAN (EDUKASI) ---
+// --- SISTEM LEVEL & WAVE ---
+const levelConfig = [
+    { level: 1, maxWaves: 5, baseEnemyCount: 5, hpMultiplier: 1.0, speedMultiplier: 1.0 },
+    { level: 2, maxWaves: 6, baseEnemyCount: 8, hpMultiplier: 1.5, speedMultiplier: 1.2 },
+    { level: 3, maxWaves: 8, baseEnemyCount: 12, hpMultiplier: 2.5, speedMultiplier: 1.5 }
+];
+
+let currentLevelIdx = 0;
+let currentWave = 1;
+let enemiesToSpawn = 0;
+let enemiesSpawned = 0;
+let waveActive = false;
+
+// --- BANK SOAL EDUKASI ---
 const quizBank = [
     { q: "1/2 + 1/4 = ...", options: ["3/4", "1/4", "1"], answer: "3/4" },
-    { q: "Bentuk sederhana dari 4/8 adalah...", options: ["1/4", "1/3", "1/2"], answer: "1/2" },
+    { q: "Bentuk sederhana 4/8 adalah...", options: ["1/4", "1/3", "1/2"], answer: "1/2" },
     { q: "1 - 1/3 = ...", options: ["1/3", "2/3", "1"], answer: "2/3" },
     { q: "Pecahan senilai dengan 2/3", options: ["4/6", "3/4", "4/5"], answer: "4/6" },
     { q: "1/2 x 1/2 = ...", options: ["1/4", "1", "2/4"], answer: "1/4" },
-    { q: "Manakah yang paling besar?", options: ["1/2", "3/4", "1/4"], answer: "3/4" }
+    { q: "Mana yang paling besar?", options: ["1/2", "3/4", "1/4"], answer: "3/4" },
+    { q: "1/4 + 1/4 = ...", options: ["1/2", "2/8", "1"], answer: "1/2" },
+    { q: "3/4 - 1/4 = ...", options: ["1/2", "1/4", "2/4"], answer: "1/2" }
 ];
 let currentQuestion = null;
 
-// --- VARIASI MUSUH ---
+// --- MUSUH & JALUR ---
 const enemyTypes = [
-    { name: "Normal", color: '#e94560', maxHp: 100, speed: 1.5, radius: 15 }, // Merah (Standar)
-    { name: "Cepat", color: '#f9d342', maxHp: 60, speed: 2.8, radius: 12 },   // Kuning (Cepat, HP tipis)
-    { name: "Tank", color: '#9b59b6', maxHp: 300, speed: 0.8, radius: 22 }    // Ungu (Lambat, HP tebal)
+    { name: "Normal", color: '#e94560', baseHp: 100, baseSpeed: 1.5, radius: 15 }, 
+    { name: "Cepat", color: '#f9d342', baseHp: 60, baseSpeed: 2.8, radius: 12 },   
+    { name: "Tank", color: '#9b59b6', baseHp: 300, baseSpeed: 0.8, radius: 22 }    
 ];
 
-// Koordinat Jalur Musuh
 const path = [
     { x: -50, y: canvas.height * 0.3 },
     { x: canvas.width * 0.4, y: canvas.height * 0.3 },
@@ -48,46 +63,130 @@ const path = [
     { x: canvas.width + 50, y: canvas.height * 0.2 }
 ];
 
-// --- FUNGSI KUIS EDUKASI ---
+// --- FUNGSI UI & KUIS ---
 function loadNextQuestion() {
-    // Pilih soal acak
     currentQuestion = quizBank[Math.floor(Math.random() * quizBank.length)];
     document.getElementById('question-text').innerText = "Soal: " + currentQuestion.q;
-    
-    // Acak posisi jawaban
     let shuffledOptions = [...currentQuestion.options].sort(() => Math.random() - 0.5);
     let buttons = document.querySelectorAll('.quiz-btn');
-    
     buttons.forEach((btn, index) => {
         btn.innerText = shuffledOptions[index];
-        btn.style.background = "#4ecca3"; // Kembalikan warna ke hijau
+        btn.style.background = "#4ecca3"; 
     });
 }
 
 function checkAnswer(btn) {
+    // Hindari double click dari touchstart dan click
+    if(btn.style.background === "rgb(255, 215, 0)" || btn.style.background === "rgb(233, 69, 96)") return;
+
     if(btn.innerText === currentQuestion.answer) {
-        currentEnergy += 1; // Jawaban benar = 1 Energi
+        currentEnergy += 1;
         updateUI();
         document.getElementById('message-area').innerText = "BENAR! +1 Energi ⭐";
         document.getElementById('message-area').style.color = "#f9d342";
-        btn.style.background = "#ffd700"; // Efek emas
-        setTimeout(loadNextQuestion, 500); // Ganti soal setelah 0.5 detik
+        btn.style.background = "#ffd700"; 
+        setTimeout(loadNextQuestion, 400); 
     } else {
         document.getElementById('message-area').innerText = "SALAH! Coba lagi.";
         document.getElementById('message-area').style.color = "red";
-        btn.style.background = "#e94560"; // Tombol jadi merah jika salah
+        btn.style.background = "#e94560"; 
     }
 }
 
-// --- KELAS OBJEK GAME ---
+function updateUI() {
+    document.getElementById('energy-display').innerText = currentEnergy;
+    document.querySelectorAll('.tower-btn').forEach(btn => {
+        let cost = parseInt(btn.getAttribute('data-cost'));
+        if (currentEnergy >= cost) btn.classList.remove('disabled');
+        else btn.classList.add('disabled');
+    });
+}
+
+// --- PEMBELIAN & PENEMPATAN MENARA ---
+// Dipanggil langsung dari atribut HTML (onclick/ontouchstart)
+function selectTower(type, cost) {
+    if (currentEnergy >= cost) {
+        placingTowerType = type;
+        placingTowerCost = cost;
+        document.getElementById('message-area').innerText = "Sentuh peta untuk menaruh menara!";
+        document.getElementById('message-area').style.color = "#4ecca3";
+    }
+}
+
+// Event listener sentuhan di kanvas (Mendukung PC dan Tablet)
+canvas.addEventListener('pointerdown', placeTower);
+
+function placeTower(e) {
+    if (placingTowerType && !isGameOver && !isGameWon) {
+        let rect = canvas.getBoundingClientRect();
+        let mouseX = e.clientX - rect.left;
+        let mouseY = e.clientY - rect.top;
+
+        currentEnergy -= placingTowerCost;
+        towers.push(new Tower(mouseX, mouseY, placingTowerType));
+        placingTowerType = null;
+        updateUI();
+        document.getElementById('message-area').innerText = "Jawab soal di bawah untuk energi!";
+    }
+}
+
+// --- LOGIKA WAVE & LEVEL ---
+function startWave() {
+    let config = levelConfig[currentLevelIdx];
+    enemiesToSpawn = config.baseEnemyCount + (currentWave * 2);
+    enemiesSpawned = 0;
+    waveActive = true;
+    document.getElementById('wave-display').innerText = `Level ${config.level} - Wave ${currentWave} / ${config.maxWaves}`;
+    document.getElementById('announcement-overlay').classList.add('hidden');
+}
+
+function showAnnouncement(title, desc, timeoutDuration) {
+    document.getElementById('announce-title').innerText = title;
+    document.getElementById('announce-desc').innerText = desc;
+    document.getElementById('announcement-overlay').classList.remove('hidden');
+    
+    if(timeoutDuration > 0) {
+        setTimeout(startWave, timeoutDuration);
+    }
+}
+
+function checkWaveProgress() {
+    if (waveActive && enemiesSpawned >= enemiesToSpawn && enemies.length === 0) {
+        waveActive = false; // Wave selesai
+        let config = levelConfig[currentLevelIdx];
+        
+        if (currentWave < config.maxWaves) {
+            // Lanjut ke wave berikutnya di level yang sama
+            currentWave++;
+            showAnnouncement(`Wave Selesai!`, `Bersiaplah untuk Wave ${currentWave}...`, 3000);
+        } else {
+            // Level Selesai
+            if (currentLevelIdx < levelConfig.length - 1) {
+                currentLevelIdx++;
+                currentWave = 1;
+                showAnnouncement(`Level ${config.level} Selesai!`, `Memasuki Level ${levelConfig[currentLevelIdx].level}...`, 4000);
+            } else {
+                // Game Tamat
+                isGameWon = true;
+                showAnnouncement(`🏆 SELAMAT! 🏆`, `Kamu berhasil memenangkan game ini!`, 0);
+            }
+        }
+    }
+}
+
+// --- KELAS ENTITAS ---
 class Enemy {
     constructor(typeParams) {
+        let config = levelConfig[currentLevelIdx];
         this.x = path[0].x;
         this.y = path[0].y;
         this.pathIndex = 1;
-        this.speed = typeParams.speed;
-        this.hp = typeParams.maxHp;
-        this.maxHp = typeParams.maxHp;
+        
+        // Atribut ditingkatkan berdasarkan level
+        this.speed = typeParams.baseSpeed * config.speedMultiplier;
+        this.maxHp = typeParams.baseHp * config.hpMultiplier;
+        this.hp = this.maxHp;
+        
         this.radius = typeParams.radius;
         this.color = typeParams.color;
     }
@@ -111,7 +210,10 @@ class Enemy {
             baseHp--;
             document.getElementById('base-hp').innerText = baseHp;
             this.hp = 0; 
-            if(baseHp <= 0) alert("GAME OVER! Benteng Hancur. Muat ulang halaman untuk bermain lagi.");
+            if(baseHp <= 0 && !isGameOver) {
+                isGameOver = true;
+                showAnnouncement(`GAME OVER`, `Benteng Hancur! Refresh halaman untuk mengulang.`, 0);
+            }
         }
     }
 
@@ -121,7 +223,6 @@ class Enemy {
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Bar Darah (HP)
         ctx.fillStyle = 'red';
         ctx.fillRect(this.x - 15, this.y - 25, 30, 5);
         ctx.fillStyle = 'lightgreen';
@@ -163,7 +264,6 @@ class Tower {
     draw() {
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x - 20, this.y - 20, 40, 40);
-        
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
@@ -178,7 +278,7 @@ class Projectile {
         this.target = target;
         this.speed = 8;
         this.type = type;
-        this.damage = type === 'fire' ? 30 : type === 'lightning' ? 100 : 15;
+        this.damage = type === 'fire' ? 40 : type === 'lightning' ? 120 : 15;
     }
 
     update() {
@@ -188,7 +288,7 @@ class Projectile {
 
         if (distance < this.speed) {
             this.target.hp -= this.damage;
-            if(this.type === 'ice') this.target.speed *= 0.9; // Efek melambat
+            if(this.type === 'ice') this.target.speed *= 0.9; 
             this.active = false;
         } else {
             this.x += (dx / distance) * this.speed;
@@ -204,52 +304,7 @@ class Projectile {
     }
 }
 
-// --- LOGIKA UI & INTERAKSI PEMAIN ---
-function updateUI() {
-    document.getElementById('energy-display').innerText = currentEnergy;
-    
-    document.querySelectorAll('.tower-btn').forEach(btn => {
-        let cost = parseInt(btn.getAttribute('data-cost'));
-        if (currentEnergy >= cost) {
-            btn.classList.remove('disabled');
-        } else {
-            btn.classList.add('disabled');
-        }
-    });
-}
-
-// Beli Menara
-document.querySelectorAll('.tower-btn').forEach(btn => {
-    btn.addEventListener('pointerdown', function(e) {
-        let cost = parseInt(this.getAttribute('data-cost'));
-        let type = this.getAttribute('data-type');
-        
-        if (currentEnergy >= cost) {
-            placingTowerType = type;
-            placingTowerCost = cost;
-            document.getElementById('message-area').innerText = "Sentuh peta untuk menaruh menara!";
-            document.getElementById('message-area').style.color = "#4ecca3";
-        }
-    });
-});
-
-// Letakkan Menara di Peta
-canvas.addEventListener('pointerdown', function(e) {
-    if (placingTowerType) {
-        let rect = canvas.getBoundingClientRect();
-        let mouseX = e.clientX - rect.left;
-        let mouseY = e.clientY - rect.top;
-
-        currentEnergy -= placingTowerCost;
-        towers.push(new Tower(mouseX, mouseY, placingTowerType));
-        
-        placingTowerType = null;
-        updateUI();
-        document.getElementById('message-area').innerText = "Jawab soal di bawah untuk energi!";
-    }
-});
-
-// --- RENDER & GAME LOOP MAIN ENGINE ---
+// --- RENDER & GAME LOOP ---
 function drawMap() {
     ctx.strokeStyle = '#4b5d67';
     ctx.lineWidth = 50;
@@ -264,15 +319,20 @@ function drawMap() {
 }
 
 function gameLoop() {
-    if(!gameStarted) return; // Tunggu tombol mulai ditekan
+    if(!gameStarted || isGameOver || isGameWon) return; 
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawMap();
 
-    // Spawn Musuh secara acak setiap 2 detik (120 frame)
-    if (frameCount % 120 === 0) {
-        let randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-        enemies.push(new Enemy(randomType));
+    // Spawn Logic
+    if (waveActive && enemiesSpawned < enemiesToSpawn) {
+        // Spawn semakin cepat jika level tinggi (interval frame berkurang)
+        let spawnInterval = 120 - (currentLevelIdx * 20); 
+        if (frameCount % spawnInterval === 0) {
+            let randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+            enemies.push(new Enemy(randomType));
+            enemiesSpawned++;
+        }
     }
 
     towers.forEach(t => { t.update(); t.draw(); });
@@ -283,17 +343,21 @@ function gameLoop() {
     projectiles.forEach(p => { p.update(); p.draw(); });
     projectiles = projectiles.filter(p => p.active !== false);
 
+    checkWaveProgress(); // Cek apakah wave sudah selesai
+
     frameCount++;
     if(baseHp > 0) {
         requestAnimationFrame(gameLoop);
     }
 }
 
-// --- TOMBOL MULAI ---
-document.getElementById('start-btn').addEventListener('click', () => {
+// --- KONTROL MULAI ---
+function startGame() {
+    if(gameStarted) return; 
     document.getElementById('start-screen').classList.add('hidden');
     gameStarted = true;
-    loadNextQuestion(); // Memanggil soal pertama
+    loadNextQuestion(); 
     updateUI();
-    gameLoop(); // Menjalankan engine
-});
+    startWave(); // Memulai Level 1 Wave 1
+    gameLoop(); 
+}
