@@ -13,7 +13,8 @@ const quizBank = [
     { q: "2/5 + 1/5 = ...", options: ["3/5", "3/10", "2/5"], answer: "3/5" },
     { q: "1/2 x 1/2 = ...", options: ["1/4", "1", "2/4"], answer: "1/4" },
     { q: "3/4 - 1/4 = ...", options: ["2/4", "1/4", "1"], answer: "2/4" },
-    { q: "Pizza potong 8, sisa 4. Pecahannya?", options: ["4/8", "2/8", "6/8"], answer: "4/8" }
+    { q: "Pizza potong 8, sisa 4. Pecahannya?", options: ["4/8", "2/8", "6/8"], answer: "4/8" },
+    
         // --- Kategori Operasi Dasar (Penjumlahan & Pengurangan) ---
     { q: "1/5 + 2/5 = ...", options: ["3/5", "3/10", "4/5"], answer: "3/5" },
     { q: "4/7 - 2/7 = ...", options: ["2/7", "6/7", "2/14"], answer: "2/7" },
