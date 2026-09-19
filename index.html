@@ -4,43 +4,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Benteng Pecahan - Tower Defense</title>
-    <!-- Memanggil file CSS -->
+    <!-- Memanggil CSS di folder yang sama -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="game-container">
-        <!-- Antarmuka Atas: Status Game -->
-        <div id="top-bar">
-            <div class="stat-box">HP Benteng: <span id="base-hp" class="highlight-text">10</span></div>
-            <div id="message-area">Sentuh pecahan untuk kumpulkan energi!</div>
-            <div class="stat-box">Energi: <span id="energy-display" class="highlight-text">0</span></div>
+    <!-- Layar Petunjuk (Mulai Game) -->
+    <div id="start-screen">
+        <h1 class="game-title">🏰 Benteng Pecahan</h1>
+        <div class="instructions">
+            <h3>Cara Bermain:</h3>
+            <ul>
+                <li>1. Jawab soal pecahan di bawah layar untuk mendapatkan <b>Energi (⭐)</b>.</li>
+                <li>2. Gunakan Energi untuk membeli Menara Pertahanan di Toko (Kanan).</li>
+                <li>3. Sentuh area kosong di peta untuk membangun menara.</li>
+                <li>4. Jangan biarkan monster mencapai benteng!</li>
+            </ul>
+            <p style="margin-top: 15px; color: #f9d342;">🔥 Bersiaplah! Monster memiliki kecepatan dan darah (HP) yang berbeda-beda.</p>
         </div>
-
-        <!-- Area Kanvas Utama untuk Rendering Grafis Game -->
-        <canvas id="gameCanvas"></canvas>
-
-        <!-- Antarmuka Kanan: Toko Menara -->
-        <div id="shop-panel">
-            <h3 class="shop-title">Toko Menara</h3>
-            <button class="tower-btn" data-type="ice" data-cost="0.5">
-                <span class="tower-name">Menara Es</span>
-                <span class="tower-cost">Harga: 1/2</span>
-            </button>
-            <button class="tower-btn" data-type="fire" data-cost="0.75">
-                <span class="tower-name">Menara Api</span>
-                <span class="tower-cost">Harga: 3/4</span>
-            </button>
-            <button class="tower-btn" data-type="lightning" data-cost="1.25">
-                <span class="tower-name">Menara Petir</span>
-                <span class="tower-cost">Harga: 1 1/4</span>
-            </button>
-        </div>
-
-        <!-- Antarmuka Bawah: Kolam Gelembung Pecahan -->
-        <div id="fraction-pool"></div>
+        <button id="start-btn">MULAI PERTAHANAN!</button>
     </div>
 
-    <!-- Memanggil file JavaScript Utama -->
+    <div id="game-container">
+        <!-- Antarmuka Atas -->
+        <div id="top-bar">
+            <div class="stat-box">HP Benteng: <span id="base-hp" class="highlight-text">10</span> ❤️</div>
+            <div id="message-area">Pilih jawaban yang tepat!</div>
+            <div class="stat-box">Energi: <span id="energy-display" class="highlight-text">0</span> ⭐</div>
+        </div>
+
+        <!-- Kanvas Game -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Toko Menara -->
+        <div id="shop-panel">
+            <h3 class="shop-title">Toko Menara</h3>
+            <button class="tower-btn" data-type="ice" data-cost="1">
+                <span class="tower-name">❄️ Menara Es</span>
+                <span class="tower-cost">Harga: 1 Energi</span>
+            </button>
+            <button class="tower-btn" data-type="fire" data-cost="2">
+                <span class="tower-name">🔥 Menara Api</span>
+                <span class="tower-cost">Harga: 2 Energi</span>
+            </button>
+            <button class="tower-btn" data-type="lightning" data-cost="3">
+                <span class="tower-name">⚡ Menara Petir</span>
+                <span class="tower-cost">Harga: 3 Energi</span>
+            </button>
+        </div>
+
+        <!-- Panel Kuis Edukatif -->
+        <div id="quiz-panel">
+            <div id="question-text">Memuat soal...</div>
+            <div id="quiz-options">
+                <button class="quiz-btn" onclick="checkAnswer(this)"></button>
+                <button class="quiz-btn" onclick="checkAnswer(this)"></button>
+                <button class="quiz-btn" onclick="checkAnswer(this)"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Memanggil JS di folder yang sama -->
     <script src="app.js"></script>
 </body>
 </html>
