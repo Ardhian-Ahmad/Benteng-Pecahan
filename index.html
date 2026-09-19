@@ -7,35 +7,43 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Layar Petunjuk (Mulai Game) -->
+    <!-- Layar Petunjuk -->
     <div id="start-screen">
         <h1 class="game-title">🏰 Benteng Pecahan</h1>
         <div class="instructions">
-            <h3>Cara Bermain:</h3>
+            <h3>Cara Bermain & Aturan Baru:</h3>
             <ul>
-                <li>1. Jawab soal pecahan di bawah layar untuk mendapatkan <b>Energi (⭐)</b>.</li>
-                <li>2. Beli menara dengan energi dan sentuh peta untuk membangunnya.</li>
-                <li>3. <b>Game ini memiliki 3 Level.</b> Kalahkan semua wave (gelombang) monster!</li>
-                <li>4. Jangan biarkan monster menyentuh benteng!</li>
+                <li>1. Jawab soal untuk Energi. <b>HATI-HATI: Jawaban SALAH = Energi -1 !</b></li>
+                <li>2. <b>Menara Es:</b> Cepat tapi lemah. <b>Menara Petir:</b> Sangat lambat tapi mematikan.</li>
+                <li>3. Hati-hati di Wave terakhir setiap Level. <b>BOSS bisa memakan menaramu!</b></li>
+                <li>4. Kumpulkan SKOR tertinggi untuk masuk Hall of Fame.</li>
             </ul>
-            <p style="margin-top: 15px; color: #f9d342;">🔥 Monster akan semakin kuat dan banyak di setiap Wave!</p>
         </div>
-        <!-- Menambahkan atribut ontouchstart untuk kompatibilitas Android/iOS -->
         <button id="start-btn" onclick="startGame()" ontouchstart="startGame()">MULAI PERTAHANAN!</button>
     </div>
 
-    <!-- Layar Pengumuman (Jeda antar Wave/Level) -->
+    <!-- Layar Pengumuman -->
     <div id="announcement-overlay" class="hidden">
         <h2 id="announce-title">Wave Selesai!</h2>
         <p id="announce-desc">Persiapkan dirimu...</p>
     </div>
 
+    <!-- Layar Hall of Fame (Papan Peringkat) -->
+    <div id="hof-screen" class="hidden">
+        <h1 class="game-title" style="margin-bottom: 5px;">🏆 Hall of Fame</h1>
+        <h2 id="final-score-text" style="color: white; margin-bottom: 20px;">Skor Akhir Tim: 0</h2>
+        <div id="leaderboard-list" class="instructions">
+            <!-- Daftar skor masuk sini -->
+        </div>
+        <button id="restart-btn" onclick="location.reload()" ontouchstart="location.reload()">MAIN LAGI</button>
+    </div>
+
     <div id="game-container">
         <!-- Antarmuka Atas -->
         <div id="top-bar">
-            <div class="stat-box">HP Benteng: <span id="base-hp" class="highlight-text">10</span> ❤️</div>
-            <!-- Indikator Level & Wave -->
-            <div id="wave-display" style="font-size: 1.5rem; color: #f9d342; font-weight: bold;">Level 1 - Wave 1</div>
+            <div class="stat-box">HP: <span id="base-hp" class="highlight-text">10</span> ❤️</div>
+            <div id="wave-display" style="font-size: 1.5rem; color: #f9d342; font-weight: bold;">Lvl 1 - Wave 1</div>
+            <div class="stat-box">Skor: <span id="score-display" class="highlight-text" style="color: #4ecca3;">0</span> 🏆</div>
             <div class="stat-box">Energi: <span id="energy-display" class="highlight-text">0</span> ⭐</div>
         </div>
 
@@ -48,16 +56,16 @@
         <div id="shop-panel">
             <h3 class="shop-title">Toko Menara</h3>
             <button class="tower-btn" data-type="ice" data-cost="1" onclick="selectTower('ice', 1)" ontouchstart="selectTower('ice', 1)">
-                <span class="tower-name">❄️ Menara Es</span>
-                <span class="tower-cost">Harga: 1 Energi</span>
+                <span class="tower-name">❄️ Es (Cepat)</span>
+                <span class="tower-cost">1 Energi</span>
             </button>
             <button class="tower-btn" data-type="fire" data-cost="2" onclick="selectTower('fire', 2)" ontouchstart="selectTower('fire', 2)">
-                <span class="tower-name">🔥 Menara Api</span>
-                <span class="tower-cost">Harga: 2 Energi</span>
+                <span class="tower-name">🔥 Api (Sedang)</span>
+                <span class="tower-cost">2 Energi</span>
             </button>
-            <button class="tower-btn" data-type="lightning" data-cost="3" onclick="selectTower('lightning', 3)" ontouchstart="selectTower('lightning', 3)">
-                <span class="tower-name">⚡ Menara Petir</span>
-                <span class="tower-cost">Harga: 3 Energi</span>
+            <button class="tower-btn" data-type="lightning" data-cost="4" onclick="selectTower('lightning', 4)" ontouchstart="selectTower('lightning', 4)">
+                <span class="tower-name">⚡ Petir (Lambat)</span>
+                <span class="tower-cost">4 Energi</span>
             </button>
         </div>
 
