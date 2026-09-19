@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Benteng Pecahan - Tower Defense</title>
+    <!-- Memanggil file CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Antarmuka Atas: Status Game -->
+        <div id="top-bar">
+            <div class="stat-box">HP Benteng: <span id="base-hp" class="highlight-text">10</span></div>
+            <div id="message-area">Sentuh pecahan untuk kumpulkan energi!</div>
+            <div class="stat-box">Energi: <span id="energy-display" class="highlight-text">0</span></div>
+        </div>
+
+        <!-- Area Kanvas Utama untuk Rendering Grafis Game -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Antarmuka Kanan: Toko Menara -->
+        <div id="shop-panel">
+            <h3 class="shop-title">Toko Menara</h3>
+            <button class="tower-btn" data-type="ice" data-cost="0.5">
+                <span class="tower-name">Menara Es</span>
+                <span class="tower-cost">Harga: 1/2</span>
+            </button>
+            <button class="tower-btn" data-type="fire" data-cost="0.75">
+                <span class="tower-name">Menara Api</span>
+                <span class="tower-cost">Harga: 3/4</span>
+            </button>
+            <button class="tower-btn" data-type="lightning" data-cost="1.25">
+                <span class="tower-name">Menara Petir</span>
+                <span class="tower-cost">Harga: 1 1/4</span>
+            </button>
+        </div>
+
+        <!-- Antarmuka Bawah: Kolam Gelembung Pecahan -->
+        <div id="fraction-pool"></div>
+    </div>
+
+    <!-- Memanggil file JavaScript Utama -->
+    <script src="js/app.js"></script>
+</body>
+</html>
