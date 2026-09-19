@@ -60,6 +60,5 @@ const quizBank = [
     { q: "Ada 5 balon, 2 meletus. Berapa bagian yang meletus?", options: ["2/5", "3/5", "1/5"], answer: "2/5" },
     { q: "Andi punya 1 semangka, dipotong dua. Satu bagian nilainya?", options: ["1/2", "1/1", "2/2"], answer: "1/2" },
     { q: "Martabak dipotong 6, laku 3. Bagian yang laku adalah?", options: ["3/6", "2/6", "1/6"], answer: "3/6" },
-    { q: "Budi minum setengah botol air. Pecahannya?", options: ["1/2", "1/3", "1/4"], answer: "1/2" }
-
+    { q: "Budi minum setengah botol air. Pecahannya?", options: ["1/2", "1/3", "1/4"], answer: "1/2" },
 ];
