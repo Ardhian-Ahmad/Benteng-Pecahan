@@ -50,14 +50,15 @@
         <button id="hof-close-btn" class="menu-btn btn-secondary" onclick="hideHoF()" style="margin-top: 20px;">Tutup</button>
     </div>
 
-    <!-- Layar Pengumuman Wave -->
-    <div id="announcement-overlay" class="hidden">
-        <h2 id="announce-title">Wave Selesai!</h2>
-        <p id="announce-desc">Persiapkan dirimu...</p>
-    </div>
-
     <!-- UI GAME UTAMA -->
     <div id="game-container" class="hidden">
+        
+        <!-- POPUP WAVE BARU (SMOOTH SLIDE) -->
+        <div id="wave-popup" class="popup-hidden">
+            <h2 id="announce-title">Wave Selesai!</h2>
+            <p id="announce-desc">Persiapkan dirimu...</p>
+        </div>
+
         <div id="top-bar">
             <div class="stat-box">HP: <span id="base-hp" class="highlight-text">10</span> ❤️</div>
             <div id="wave-display" class="wave-text">Lvl 1 - Wave 1</div>
