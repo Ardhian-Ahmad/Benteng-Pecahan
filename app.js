@@ -14,6 +14,34 @@ function getPointerPos(e) {
     return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
 }
 
+// ==========================================
+// 🎨 ASSETS LIBRARY (VECTOR SPRITES INJECTION)
+// ==========================================
+const svgAssets = {
+    // TOWER SPRITES
+    tower_ice: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="50,10 80,90 20,90" fill="#3498db"/><polygon points="50,10 65,90 35,90" fill="#85c1e9"/></svg>`,
+    tower_fire: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="25" y="40" width="50" height="60" fill="#2c3e50"/><polygon points="10,40 50,10 90,40" fill="#c0392b"/><circle cx="50" cy="25" r="15" fill="#e67e22"/><circle cx="50" cy="20" r="8" fill="#f1c40f"/></svg>`,
+    tower_lightning: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="40" y="30" width="20" height="70" fill="#8e44ad"/><circle cx="50" cy="30" r="25" fill="#f1c40f"/><polygon points="45,15 55,15 50,40" fill="#fff"/></svg>`,
+    tower_barracks: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="10,90 50,20 90,90" fill="#27ae60"/><rect x="40" y="60" width="20" height="30" fill="#2c3e50"/><circle cx="50" cy="20" r="8" fill="#f1c40f"/></svg>`,
+    
+    // ENEMY SPRITES
+    enemy_normal: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M10,80 Q50,10 90,80 Q50,100 10,80" fill="#e94560"/><circle cx="35" cy="60" r="8" fill="#fff"/><circle cx="65" cy="60" r="8" fill="#fff"/><circle cx="35" cy="60" r="3" fill="#000"/><circle cx="65" cy="60" r="3" fill="#000"/></svg>`,
+    enemy_fast: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="50,90 10,20 50,40 90,20" fill="#f1c40f"/><circle cx="40" cy="40" r="4" fill="#000"/><circle cx="60" cy="40" r="4" fill="#000"/></svg>`,
+    enemy_tank: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="15" width="70" height="70" rx="15" fill="#95a5a6"/><rect x="25" y="30" width="20" height="15" fill="#e74c3c"/><rect x="55" y="30" width="20" height="15" fill="#e74c3c"/><rect x="30" y="70" width="40" height="10" fill="#2c3e50"/></svg>`,
+    enemy_boss: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M10,60 Q50,100 90,60 Q70,0 50,20 Q30,0 10,60" fill="#c0392b"/><circle cx="35" cy="50" r="10" fill="#f1c40f"/><circle cx="65" cy="50" r="10" fill="#f1c40f"/><polygon points="30,15 40,-5 50,15" fill="#f1c40f"/><polygon points="50,15 60,-5 70,15" fill="#f1c40f"/><path d="M30,80 Q50,90 70,80" stroke="#fff" stroke-width="5" fill="none"/></svg>`,
+    
+    // SOLDIER SPRITES
+    soldier_normal: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="#bdc3c7"/><rect x="45" y="10" width="10" height="80" fill="#2c3e50"/><rect x="10" y="45" width="80" height="10" fill="#2c3e50"/></svg>`,
+    soldier_leader: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="#f1c40f"/><rect x="42" y="10" width="16" height="80" fill="#c0392b"/><rect x="10" y="42" width="80" height="16" fill="#c0392b"/></svg>`
+};
+
+const images = {};
+for (let key in svgAssets) {
+    let img = new Image();
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgAssets[key]);
+    images[key] = img;
+}
+
 // --- AUDIO ---
 let audioCtx;
 function initAudio() {
@@ -44,64 +72,35 @@ function showMessage(text, color = "#4ecca3") {
     msg.innerText = text; msg.style.color = color;
 }
 
-// --- UI DINAMIS (Sinkronisasi Cerdas dengan towers.js) ---
+// --- UI DINAMIS ---
 function buildShopAndGallery() {
     let shopContainer = document.getElementById('shop-buttons-container');
     let galTower = document.getElementById('tower-gallery-list');
     let galEnemy = document.getElementById('enemy-gallery-list');
     
-    shopContainer.innerHTML = '';
-    galTower.innerHTML = '';
-
+    shopContainer.innerHTML = ''; galTower.innerHTML = '';
     Object.values(towerConfig).forEach(t => {
-        // Render Tombol Toko
         shopContainer.innerHTML += `
             <button class="tower-btn" data-type="${t.id}" data-cost="${t.cost}" onclick="selectTower('${t.id}', ${t.cost})">
                 <span class="tower-name">${t.icon} ${t.name}</span>
                 <span class="tower-cost">${t.cost} Energi</span>
             </button>
         `;
-
-        // Render Kartu Galeri dengan Data Level 1
-        let base = t.levels[0];
-        let statBadges = "";
-
-        // Pengecekan cerdas tipe menara untuk membuat lencana (badge) yang tepat
+        let base = t.levels[0]; let statBadges = "";
         if (t.id === 'barracks') {
             statBadges += `<span class="badge badge-dmg">Prajurit: ${base.spawnCount}</span>`;
-            statBadges += `<span class="badge badge-speed">HP Prajurit: ${base.soldier.hp}</span>`;
-            statBadges += `<span class="badge badge-dmg">Dmg Prajurit: ${base.soldier.damage}</span>`;
-            if (base.hasLeader) statBadges += `<span class="badge badge-cost">Leader: Ya</span>`;
+            statBadges += `<span class="badge badge-speed">HP: ${base.soldier.hp}</span>`;
+            statBadges += `<span class="badge badge-dmg">Dmg: ${base.soldier.damage}</span>`;
         } else {
             statBadges += `<span class="badge badge-dmg">Dmg Awal: ${base.damage}</span>`;
             statBadges += `<span class="badge badge-speed">Jangkauan: ${base.range}</span>`;
-            
-            // Render atribut spesial dari towers.js
-            if (base.effect) {
-                if (base.effect.type === 'slow') {
-                    let slowPercent = base.effect.amount * 100;
-                    let durasi = base.effect.duration / 60; // ubah frame ke detik
-                    statBadges += `<span class="badge badge-cost">Slow: ${slowPercent}% (${durasi}s)</span>`;
-                } else if (base.effect.type === 'burn') {
-                    statBadges += `<span class="badge badge-cost">Burn Dmg: ${base.effect.tickDamage}</span>`;
-                } else if (base.effect.type === 'pierce') {
-                    statBadges += `<span class="badge badge-cost">Vs Tank: x${base.effect.multiplier} Dmg</span>`;
-                }
-            }
         }
-
         galTower.innerHTML += `
             <div class="gallery-card">
-                <div class="card-icon">${t.icon}</div>
+                <div class="card-icon"><img src="${images['tower_'+t.id].src}" width="40"></div>
                 <div class="card-info">
-                    <h4>${t.name}</h4>
-                    <span class="badge badge-cost">Harga Beli: ${t.cost} ⭐</span>
-                    <br>
-                    <div style="margin-top:8px; margin-bottom:8px;">
-                        ${statBadges}
-                    </div>
-                    <p style="margin-top: 5px;">${t.desc}</p>
-                    <p style="font-size: 0.8rem; color: #a2d5f2; margin-top: 5px;"><i>*Tersedia Upgrade hingga Lv.${t.levels.length}</i></p>
+                    <h4>${t.name}</h4><span class="badge badge-cost">Harga: ${t.cost} ⭐</span>
+                    <div style="margin-top:8px; margin-bottom:8px;">${statBadges}</div><p>${t.desc}</p>
                 </div>
             </div>
         `;
@@ -111,23 +110,21 @@ function buildShopAndGallery() {
     enemyTypesArr.forEach(e => {
         galEnemy.innerHTML += `
             <div class="gallery-card">
-                <div class="card-icon" style="background:${e.color}">👾</div>
+                <div class="card-icon"><img src="${images['enemy_'+e.type].src}" width="40"></div>
                 <div class="card-info">
-                    <h4>Tipe: ${e.type.toUpperCase()}</h4>
-                    <span class="badge badge-dmg">HP: ${e.baseHp}</span>
-                    <span class="badge badge-speed">Speed: ${e.baseSpeed}</span>
+                    <h4>${e.type.toUpperCase()}</h4>
+                    <span class="badge badge-dmg">HP: ${e.baseHp}</span><span class="badge badge-speed">Speed: ${e.baseSpeed}</span>
                 </div>
             </div>
         `;
     });
     galEnemy.innerHTML += `
         <div class="gallery-card" style="border: 2px solid #ff0044;">
-            <div class="card-icon" style="background:${bossType.color}">👑</div>
+            <div class="card-icon"><img src="${images['enemy_boss'].src}" width="45"></div>
             <div class="card-info">
-                <h4>${bossType.type.toUpperCase()}</h4>
+                <h4>BOSS MONSTER</h4>
                 <span class="badge badge-dmg">HP: ${bossType.baseHp}</span>
-                <span class="badge badge-speed">Skill: Turunkan Lv Menara</span>
-                <p>Boss mematikan! Instant Game Over jika menyentuh benteng.</p>
+                <p style="margin-top:5px; color:#ff7b54;">Skill: Menurunkan Level Menara. Instant Game Over jika lolos.</p>
             </div>
         </div>
     `;
@@ -161,9 +158,7 @@ function loadNextQuestion() {
     let shuffledOptions = [...currentQuestion.options].sort(() => Math.random() - 0.5);
     let buttons = document.querySelectorAll('.quiz-btn');
     buttons.forEach((btn, index) => {
-        btn.innerText = shuffledOptions[index];
-        btn.style.background = "#4ecca3"; 
-        btn.classList.remove('locked');
+        btn.innerText = shuffledOptions[index]; btn.style.background = "#4ecca3"; btn.classList.remove('locked');
     });
     isAnswering = false;
 }
@@ -175,23 +170,19 @@ function checkAnswer(btn) {
 
     if(btn.innerText === currentQuestion.answer) {
         currentEnergy += 1; score += 15; 
-        showMessage("BENAR! +1 Energi ⭐", "#f9d342");
-        btn.style.background = "#ffd700"; sfx.correct();
+        showMessage("BENAR! +1 Energi ⭐", "#f9d342"); btn.style.background = "#ffd700"; sfx.correct();
     } else {
         currentEnergy = Math.max(0, currentEnergy - 1); 
-        showMessage("SALAH! Energi -1 ❌", "red");
-        btn.style.background = "#e94560"; sfx.wrong();
+        showMessage("SALAH! Energi -1 ❌", "red"); btn.style.background = "#e94560"; sfx.wrong();
     }
     updateUI(); setTimeout(loadNextQuestion, 1500);
 }
 
 function updateUI() {
-    document.getElementById('energy-display').innerText = currentEnergy;
-    document.getElementById('score-display').innerText = score;
+    document.getElementById('energy-display').innerText = currentEnergy; document.getElementById('score-display').innerText = score;
     document.querySelectorAll('.tower-btn').forEach(btn => {
         let cost = parseInt(btn.getAttribute('data-cost'));
-        if (currentEnergy >= cost) btn.classList.remove('disabled');
-        else btn.classList.add('disabled');
+        if (currentEnergy >= cost) btn.classList.remove('disabled'); else btn.classList.add('disabled');
     });
 }
 
@@ -215,8 +206,7 @@ function isInvalidPlacement(x, y) {
 class Particle {
     constructor(x, y, color) {
         this.x = x; this.y = y; this.color = color;
-        this.vx = (Math.random() - 0.5) * 6; this.vy = (Math.random() - 0.5) * 6;
-        this.life = 1.0;
+        this.vx = (Math.random() - 0.5) * 6; this.vy = (Math.random() - 0.5) * 6; this.life = 1.0;
     }
     update() { this.x += this.vx; this.y += this.vy; this.life -= 0.05; }
     draw() { ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, 6, 6); ctx.globalAlpha = 1.0; }
@@ -226,25 +216,31 @@ function spawnParticles(x, y, color) { for(let i=0; i<10; i++) particles.push(ne
 class Soldier {
     constructor(x, y, stats, isLeader) {
         this.x = x + (Math.random()-0.5)*40; this.y = y + (Math.random()-0.5)*40;
-        this.hp = stats.hp; this.maxHp = stats.hp;
-        this.damage = stats.damage; 
-        this.radius = stats.radius;
-        this.color = stats.color;
-        this.isLeader = isLeader;
-        this.isDead = false;
+        this.hp = stats.hp; this.maxHp = stats.hp; this.damage = stats.damage; 
+        this.radius = stats.radius; this.isLeader = isLeader; this.isDead = false;
+        
+        // Pilih sprite berdasarkan status
+        this.spriteName = isLeader ? 'soldier_leader' : 'soldier_normal';
     }
     attack(enemiesList) {
         let hit = false;
         for(let e of enemiesList) {
-            if(Math.hypot(this.x - e.x, this.y - e.y) < 50) { 
-                e.takeDamage(this.damage); hit = true;
-            }
+            if(Math.hypot(this.x - e.x, this.y - e.y) < 50) { e.takeDamage(this.damage); hit = true; }
         }
-        if(hit) { spawnParticles(this.x, this.y, this.color); sfx.hit(); }
+        if(hit) { spawnParticles(this.x, this.y, '#27ae60'); sfx.hit(); }
     }
     draw() {
-        ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'lightgreen'; ctx.fillRect(this.x - 10, this.y - 15, 20 * (this.hp / this.maxHp), 4);
+        ctx.save(); ctx.translate(this.x, this.y);
+        // Animasi bernapas
+        let stretch = 1 + Math.sin(frameCount * 0.1) * 0.05;
+        ctx.scale(1, stretch);
+        
+        let img = images[this.spriteName];
+        if(img) ctx.drawImage(img, -this.radius*1.5, -this.radius*1.5, this.radius*3, this.radius*3);
+        
+        ctx.restore();
+        ctx.fillStyle = 'red'; ctx.fillRect(this.x - 10, this.y - 20, 20, 4);
+        ctx.fillStyle = 'lightgreen'; ctx.fillRect(this.x - 10, this.y - 20, 20 * (this.hp / this.maxHp), 4);
     }
 }
 
@@ -259,46 +255,33 @@ class Enemy {
         this.speed = this.normalSpeed;
         this.maxHp = typeParams.baseHp * (this.isBoss ? 1 : config.hpMult);
         this.hp = this.maxHp; this.radius = typeParams.radius;
-        this.color = typeParams.color;
         
         this.abilityTimer = 0; this.isCasting = false;
-        this.slowTimer = 0; this.slowAmount = 0; 
-        this.burnTimer = 0; this.burnDamage = 0;
+        this.slowTimer = 0; this.slowAmount = 0; this.burnTimer = 0; this.burnDamage = 0;
+        this.isMovingLeft = false;
     }
 
     takeDamage(amount) {
         this.hp -= amount;
         if(this.hp <= 0 && !this.isDead) {
-            this.isDead = true;
-            score += this.isBoss ? 500 : (this.type === 'tank' ? 30 : 20);
-            updateUI();
+            this.isDead = true; score += this.isBoss ? 500 : (this.type === 'tank' ? 30 : 20); updateUI();
         }
     }
 
     update() {
         if (this.burnTimer > 0) {
             this.burnTimer--;
-            if(this.burnTimer % 30 === 0) { 
-                this.takeDamage(this.burnDamage);
-                spawnParticles(this.x, this.y, 'orange'); sfx.burn();
-            }
+            if(this.burnTimer % 30 === 0) { this.takeDamage(this.burnDamage); spawnParticles(this.x, this.y, 'orange'); sfx.burn(); }
         }
 
-        if (this.slowTimer > 0) { 
-            this.slowTimer--; 
-        } else {
-            this.slowAmount = 0; 
-        }
+        if (this.slowTimer > 0) this.slowTimer--; else this.slowAmount = 0; 
 
         let blocked = false;
         for (let i = soldiers.length - 1; i >= 0; i--) {
             let s = soldiers[i];
             if (!s.isDead && Math.hypot(this.x - s.x, this.y - s.y) < this.radius + s.radius + 5) {
                 blocked = true;
-                if (frameCount % 60 === 0) { 
-                    s.hp -= (this.isBoss ? 50 : 15);
-                    s.attack(enemies);
-                }
+                if (frameCount % 60 === 0) { s.hp -= (this.isBoss ? 50 : 15); s.attack(enemies); }
                 if (s.hp <= 0) { s.isDead = true; soldiers.splice(i, 1); }
                 break;
             }
@@ -318,33 +301,25 @@ class Enemy {
                 } else {
                     let angle = Math.atan2(dy, dx);
                     this.x += Math.cos(angle) * this.speed; this.y += Math.sin(angle) * this.speed;
-                    this.rotation = angle; 
+                    this.isMovingLeft = (Math.abs(angle) > Math.PI/2); // Deteksi arah
                 }
             }
 
             if (this.isBoss && towers.length > 0) {
                 this.abilityTimer++;
-                if (this.abilityTimer === 300) { 
-                    this.isCasting = true; showMessage("⚠️ BOSS BERSIAP MENYERANG MENARA!", "orange"); sfx.bossWarn(); 
-                }
+                if (this.abilityTimer === 300) { this.isCasting = true; showMessage("⚠️ BOSS BERSIAP MENYERANG MENARA!", "orange"); sfx.bossWarn(); }
                 if (this.abilityTimer >= 400) { 
                     this.isCasting = false; this.abilityTimer = 0;
                     let inRangeTowers = towers.filter(t => Math.hypot(this.x - t.x, this.y - t.y) < 180);
-                    
                     if (inRangeTowers.length > 0) {
                         let t = inRangeTowers[Math.floor(Math.random() * inRangeTowers.length)];
-                        
                         if (t.tier > 1) {
-                            t.downgrade(); 
-                            spawnParticles(t.x, t.y, 'orange');
-                            sfx.bossDestroy();
+                            t.downgrade(); spawnParticles(t.x, t.y, 'orange'); sfx.bossDestroy();
                             showMessage(`⚠️ LEVEL ${towerConfig[t.type].name} DITURUNKAN BOSS!`, "orange");
                         } else {
                             if(t.type === 'barracks') t.mySoldiers.forEach(s => s.isDead = true);
                             towers = towers.filter(tower => tower !== t);
-                            spawnParticles(t.x, t.y, 'red');
-                            sfx.bossDestroy();
-                            showMessage("⚠️ 1 MENARAMU HANCUR!", "red");
+                            spawnParticles(t.x, t.y, 'red'); sfx.bossDestroy(); showMessage("⚠️ 1 MENARAMU HANCUR!", "red");
                         }
                     }
                 }
@@ -366,79 +341,55 @@ class Enemy {
             ctx.fillStyle = this.isCasting ? "rgba(255, 165, 0, 0.3)" : "rgba(255, 0, 0, 0.1)"; ctx.fill();
         }
 
-        ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rotation || 0);
+        ctx.save(); ctx.translate(this.x, this.y);
+        
+        // Animasi Berjalan (Memantul & Meregang)
+        let bounce = Math.abs(Math.sin(frameCount * 0.15)) * (this.speed * 2);
+        let stretch = 1 + Math.cos(frameCount * 0.2) * 0.05;
+        ctx.scale(this.isMovingLeft ? -1 : 1, 1); // Balik badan jika ke kiri
+        ctx.scale(1/stretch, stretch); 
+        ctx.translate(0, -bounce); // Gerak lompat kecil
 
-        if (this.type === 'normal') {
-            ctx.fillStyle = this.slowTimer > 0 ? '#a2d5f2' : this.color; 
-            ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(6, -6, 5, 0, Math.PI*2); ctx.arc(6, 6, 5, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(7, -6, 2, 0, Math.PI*2); ctx.arc(7, 6, 2, 0, Math.PI*2); ctx.fill();
-        } 
-        else if (this.type === 'fast') {
-            ctx.fillStyle = this.slowTimer > 0 ? '#a2d5f2' : this.color;
-            ctx.beginPath(); ctx.moveTo(this.radius+5, 0); ctx.lineTo(-this.radius, -this.radius); ctx.lineTo(-this.radius/2, 0); ctx.lineTo(-this.radius, this.radius); ctx.closePath(); ctx.fill();
-        } 
-        else if (this.type === 'tank') {
-            ctx.fillStyle = this.slowTimer > 0 ? '#a2d5f2' : this.color; 
-            ctx.fillRect(-this.radius, -this.radius, this.radius*2, this.radius*2);
-            ctx.fillStyle = 'gray'; ctx.fillRect(-this.radius-5, -this.radius/2, 5, this.radius); ctx.fillRect(this.radius, -this.radius/2, 5, this.radius);
-        } 
-        else if (this.isBoss) {
-            ctx.fillStyle = this.slowTimer > 0 ? '#a2d5f2' : this.color; 
-            ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = 'gold'; ctx.beginPath(); ctx.moveTo(0, -this.radius-25); ctx.lineTo(20, -this.radius); ctx.lineTo(-20, -this.radius); ctx.closePath(); ctx.fill();
-            ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
+        // Draw Sprite
+        let imgName = this.isBoss ? 'enemy_boss' : 'enemy_' + this.type;
+        let img = images[imgName];
+        if(img) {
+            // Efek warna jika kena slow
+            if(this.slowTimer > 0) { ctx.globalAlpha = 0.5; }
+            ctx.drawImage(img, -this.radius*1.5, -this.radius*1.5, this.radius*3, this.radius*3);
+            ctx.globalAlpha = 1.0;
         }
 
         if(this.burnTimer > 0) {
-            ctx.fillStyle = 'orange'; ctx.beginPath(); ctx.moveTo(0, -this.radius); ctx.lineTo(8, -this.radius-15); ctx.lineTo(-8, -this.radius-15); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = 'orange'; ctx.beginPath(); ctx.moveTo(0, -this.radius); ctx.lineTo(10, -this.radius-20); ctx.lineTo(-10, -this.radius-20); ctx.closePath(); ctx.fill();
         }
 
         ctx.restore();
-        ctx.fillStyle = 'red'; ctx.fillRect(this.x - 15, this.y - this.radius - 15, 30, 5);
-        ctx.fillStyle = 'lightgreen'; ctx.fillRect(this.x - 15, this.y - this.radius - 15, 30 * (this.hp / this.maxHp), 5);
+        ctx.fillStyle = 'red'; ctx.fillRect(this.x - 15, this.y - this.radius - 20, 30, 5);
+        ctx.fillStyle = 'lightgreen'; ctx.fillRect(this.x - 15, this.y - this.radius - 20, 30 * (this.hp / this.maxHp), 5);
     }
 }
 
 class Tower {
     constructor(x, y, typeId) {
         this.x = x; this.y = y; this.type = typeId; this.tier = 1;
-        this.color = typeId === 'ice' ? '#a2d5f2' : typeId === 'fire' ? '#ff7b54' : typeId === 'lightning' ? '#ffd700' : '#27ae60';
-        
-        this.timer = 0;
-        this.mySoldiers = [];
-        this.spawnX = 0; this.spawnY = 0; 
+        this.timer = 0; this.mySoldiers = []; this.spawnX = 0; this.spawnY = 0; 
         if(typeId === 'barracks') this.calculateSpawnPoint();
-        
         this.applyStats();
-
-        if(typeId === 'barracks') {
-            for(let i=0; i<this.spawnCount; i++) this.spawnOneSoldier();
-        } 
+        if(typeId === 'barracks') { for(let i=0; i<this.spawnCount; i++) this.spawnOneSoldier(); } 
     }
 
     applyStats() {
         let conf = towerConfig[this.type].levels[this.tier - 1];
-        this.range = conf.range;
-        this.cooldown = conf.cooldown;
-        this.upgradeCost = conf.upgradeCost;
-
+        this.range = conf.range; this.cooldown = conf.cooldown; this.upgradeCost = conf.upgradeCost;
         if (this.type === 'barracks') {
-            this.spawnCount = conf.spawnCount;
-            this.soldierStats = conf.soldier;
-            this.hasLeader = conf.hasLeader;
-            this.leaderStats = conf.leader;
+            this.spawnCount = conf.spawnCount; this.soldierStats = conf.soldier; this.hasLeader = conf.hasLeader; this.leaderStats = conf.leader;
         } else {
-            this.damage = conf.damage;
-            this.effect = conf.effect;
+            this.damage = conf.damage; this.effect = conf.effect;
         }
     }
 
-    downgrade() {
-        this.tier--;
-        this.applyStats();
-    }
+    downgrade() { this.tier--; this.applyStats(); }
 
     calculateSpawnPoint() {
         let minDist = Infinity;
@@ -449,16 +400,8 @@ class Tower {
     }
 
     spawnOneSoldier() {
-        let isLeader = false;
-        let stats = this.soldierStats;
-
-        if (this.hasLeader) {
-            let leaderAlive = this.mySoldiers.some(s => s.isLeader && !s.isDead);
-            if (!leaderAlive) {
-                isLeader = true;
-                stats = this.leaderStats;
-            }
-        }
+        let isLeader = false; let stats = this.soldierStats;
+        if (this.hasLeader && !this.mySoldiers.some(s => s.isLeader && !s.isDead)) { isLeader = true; stats = this.leaderStats; }
         let s = new Soldier(this.spawnX, this.spawnY, stats, isLeader);
         this.mySoldiers.push(s); soldiers.push(s);
     }
@@ -489,27 +432,34 @@ class Tower {
 
     draw() {
         ctx.beginPath(); ctx.arc(this.x, this.y, 60, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(233, 69, 96, 0.15)"; ctx.fill();
+        ctx.fillStyle = "rgba(233, 69, 96, 0.15)"; ctx.fill(); // Zona Merah
 
-        ctx.fillStyle = this.color;
-        if(this.type === 'barracks') {
-            ctx.beginPath(); ctx.arc(this.x, this.y, 25, 0, Math.PI*2); ctx.fill();
-        } else {
-            ctx.fillRect(this.x - 25, this.y - 25, 50, 50);
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(255, 255, 255, 0.05)"; ctx.fill();
+        ctx.save(); ctx.translate(this.x, this.y);
+        
+        // Animasi menara berdenyut halus
+        let pulse = 1 + Math.sin(frameCount * 0.05) * 0.02;
+        ctx.scale(pulse, pulse);
+
+        let img = images['tower_' + this.type];
+        if(img) {
+            ctx.drawImage(img, -35, -35, 70, 70); // Gambar Sprite Menara
         }
+
+        ctx.restore();
+
+        // Lingkaran Jangkauan transparan
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.05)"; ctx.fill();
+
         ctx.fillStyle = "white"; ctx.font = "bold 16px Arial";
-        ctx.fillText("Lv." + this.tier, this.x - 15, this.y + 6);
+        ctx.fillText("Lv." + this.tier, this.x - 15, this.y + 15);
     }
 }
 
 class Projectile {
     constructor(x, y, target, type, damage, effect) {
         this.x = x; this.y = y; this.target = target; this.type = type;
-        this.speed = 15;
-        this.damage = damage; 
-        this.effect = effect;
+        this.speed = 15; this.damage = damage; this.effect = effect;
     }
 
     update() {
@@ -519,21 +469,11 @@ class Projectile {
 
         if (distance < this.speed) {
             let finalDmg = this.damage;
-
-            if(this.effect && this.effect.type === 'pierce' && this.target.type === 'tank') {
-                finalDmg *= this.effect.multiplier;
-            }
-
+            if(this.effect && this.effect.type === 'pierce' && this.target.type === 'tank') finalDmg *= this.effect.multiplier; 
             this.target.takeDamage(finalDmg);
 
-            if (this.effect && this.effect.type === 'slow') {
-                this.target.slowTimer = this.effect.duration;
-                this.target.slowAmount = this.effect.amount;
-            }
-            if (this.effect && this.effect.type === 'burn') {
-                this.target.burnTimer = this.effect.duration;
-                this.target.burnDamage = this.effect.tickDamage;
-            }
+            if (this.effect && this.effect.type === 'slow') { this.target.slowTimer = this.effect.duration; this.target.slowAmount = this.effect.amount; }
+            if (this.effect && this.effect.type === 'burn') { this.target.burnTimer = this.effect.duration; this.target.burnDamage = this.effect.tickDamage; }
             
             this.active = false; sfx.hit();
             spawnParticles(this.target.x, this.target.y, this.type === 'fire'?'orange':'#fff');
@@ -543,49 +483,39 @@ class Projectile {
     }
 
     draw() {
-        ctx.fillStyle = this.type === 'ice' ? '#fff' : this.type === 'fire' ? 'orange' : 'yellow';
-        ctx.beginPath(); ctx.arc(this.x, this.y, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = this.type === 'ice' ? '#3498db' : this.type === 'fire' ? '#e74c3c' : '#f1c40f';
+        ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI * 2); ctx.fill();
+        
+        // Efek ekor peluru (Glow)
+        ctx.beginPath(); ctx.arc(this.x, this.y, 14, 0, Math.PI * 2);
+        ctx.fillStyle = this.type === 'ice' ? 'rgba(52, 152, 219, 0.4)' : this.type === 'fire' ? 'rgba(231, 76, 60, 0.4)' : 'rgba(241, 196, 15, 0.4)';
+        ctx.fill();
     }
 }
 
 // --- INTERAKSI KANVAS ---
 function selectTower(type, cost) {
-    if (currentEnergy >= cost) {
-        placingTowerType = type; placingTowerCost = cost;
-        showMessage("Sentuh area cetak biru yang aman untuk menaruh!");
-    }
+    if (currentEnergy >= cost) { placingTowerType = type; placingTowerCost = cost; showMessage("Sentuh area cetak biru yang aman untuk menaruh!"); }
 }
 
 canvas.addEventListener('pointerdown', function(e) {
     initAudio();
-    let pos = getPointerPos(e);
-    let mouseX = pos.x, mouseY = pos.y;
+    let pos = getPointerPos(e); let mouseX = pos.x, mouseY = pos.y;
 
     if (placingTowerType && !isGameOver && !isGameWon) {
-        if(isInvalidPlacement(mouseX, mouseY)) {
-            showMessage("Zona Merah! Terlalu dekat dengan jalan/menara!", "red");
-            sfx.wrong(); return;
-        }
-        currentEnergy -= placingTowerCost;
-        towers.push(new Tower(mouseX, mouseY, placingTowerType));
-        placingTowerType = null; updateUI();
-        showMessage("Jawab soal di bawah untuk energi!");
-        return;
+        if(isInvalidPlacement(mouseX, mouseY)) { showMessage("Zona Merah! Terlalu dekat dengan jalan/menara!", "red"); sfx.wrong(); return; }
+        currentEnergy -= placingTowerCost; towers.push(new Tower(mouseX, mouseY, placingTowerType));
+        placingTowerType = null; updateUI(); showMessage("Jawab soal di bawah untuk energi!"); return;
     }
 
     if(!placingTowerType && !isGameOver) {
         for(let t of towers) {
             if(Math.hypot(mouseX - t.x, mouseY - t.y) < 40) {
                 if(t.tier < 3 && currentEnergy >= t.upgradeCost) {
-                    currentEnergy -= t.upgradeCost;
-                    t.tier++; t.applyStats(); 
-                    sfx.upgrade(); spawnParticles(t.x, t.y, '#ffd700'); updateUI();
-                    showMessage(`${towerConfig[t.type].name} Naik ke Lv.${t.tier}!`);
-                } else if(t.tier === 3) {
-                    showMessage("Level Maksimal!");
-                } else {
-                    showMessage(`Butuh ${t.upgradeCost} Energi untuk Upgrade!`, "red");
-                }
+                    currentEnergy -= t.upgradeCost; t.tier++; t.applyStats(); 
+                    sfx.upgrade(); spawnParticles(t.x, t.y, '#ffd700'); updateUI(); showMessage(`${towerConfig[t.type].name} Naik ke Lv.${t.tier}!`);
+                } else if(t.tier === 3) { showMessage("Level Maksimal!");
+                } else { showMessage(`Butuh ${t.upgradeCost} Energi untuk Upgrade!`, "red"); }
                 return;
             }
         }
@@ -595,35 +525,28 @@ canvas.addEventListener('pointerdown', function(e) {
 // --- LOGIKA WAVE ---
 function startWave() {
     let config = levelConfig[currentLevelIdx];
-    enemiesToSpawn = config.baseEnemyCount + (currentWave * 2);
-    enemiesSpawned = 0; waveActive = true;
+    enemiesToSpawn = config.baseEnemyCount + (currentWave * 2); enemiesSpawned = 0; waveActive = true;
     document.getElementById('wave-display').innerText = `Lvl ${config.level} - Wave ${currentWave} / ${config.maxWaves}`;
     document.getElementById('announcement-overlay').classList.add('hidden');
 }
 
 function showAnnouncement(title, desc, timeoutDuration) {
-    document.getElementById('announce-title').innerText = title;
-    document.getElementById('announce-desc').innerText = desc;
+    document.getElementById('announce-title').innerText = title; document.getElementById('announce-desc').innerText = desc;
     document.getElementById('announcement-overlay').classList.remove('hidden');
     if(timeoutDuration > 0) setTimeout(startWave, timeoutDuration);
 }
 
 function checkWaveProgress() {
     if (waveActive && enemiesSpawned >= enemiesToSpawn && enemies.length === 0) {
-        waveActive = false; 
-        let config = levelConfig[currentLevelIdx];
+        waveActive = false; let config = levelConfig[currentLevelIdx];
         if (currentWave < config.maxWaves) {
-            currentWave++;
-            showAnnouncement(`Wave Selesai!`, `Persiapan Wave ${currentWave}...`, 3000);
+            currentWave++; showAnnouncement(`Wave Selesai!`, `Persiapan Wave ${currentWave}...`, 3000);
         } else {
             if (currentLevelIdx < levelConfig.length - 1) {
-                currentLevelIdx++; currentWave = 1;
-                loadMapForLevel(currentLevelIdx); 
+                currentLevelIdx++; currentWave = 1; loadMapForLevel(currentLevelIdx); 
                 towers = []; soldiers = []; projectiles = []; particles = []; 
                 showAnnouncement(`Level ${config.level} Selesai!`, `Memasuki Level ${levelConfig[currentLevelIdx].level}...`, 4000);
-            } else {
-                handleEndGame(true); 
-            }
+            } else { handleEndGame(true); }
         }
     }
 }
@@ -633,41 +556,22 @@ function checkWaveProgress() {
 // ==========================================
 function renderLeaderboard(hofData) {
     let listHTML = "<ol style='padding-left: 20px; text-align:left;'>";
-    if(!hofData || hofData.length === 0) {
-        listHTML += "<li>Belum ada data juara di Server.</li>";
-    } else {
-        hofData.forEach(e => { listHTML += `<li style='margin-bottom:8px'><b>${e.name}</b> : ${e.score} Pts</li>`; });
-    }
-    listHTML += "</ol>";
-    document.getElementById('leaderboard-list').innerHTML = listHTML;
+    if(!hofData || hofData.length === 0) { listHTML += "<li>Belum ada data juara di Server.</li>"; } 
+    else { hofData.forEach(e => { listHTML += `<li style='margin-bottom:8px'><b>${e.name}</b> : ${e.score} Pts</li>`; }); }
+    listHTML += "</ol>"; document.getElementById('leaderboard-list').innerHTML = listHTML;
 }
 
 function handleEndGame(isWin) {
-    isGameOver = true; isGameWon = isWin;
-    document.getElementById('announcement-overlay').classList.add('hidden');
-    
-    document.getElementById('final-score-text').innerText = `Skor Akhir ${teamName}: ${score}`;
-    document.getElementById('final-score-text').classList.remove('hidden');
-    
+    isGameOver = true; isGameWon = isWin; document.getElementById('announcement-overlay').classList.add('hidden');
+    document.getElementById('final-score-text').innerText = `Skor Akhir ${teamName}: ${score}`; document.getElementById('final-score-text').classList.remove('hidden');
     document.getElementById('leaderboard-list').innerHTML = "<p style='text-align:center; color:#f9d342;'>Menyimpan skor ke server... 📡</p>";
-    document.getElementById('hof-gameover-controls').classList.add('hidden');
-    document.getElementById('hof-close-btn').classList.add('hidden');
-    document.getElementById('hof-screen').classList.remove('hidden');
+    document.getElementById('hof-gameover-controls').classList.add('hidden'); document.getElementById('hof-close-btn').classList.add('hidden'); document.getElementById('hof-screen').classList.remove('hidden');
 
-    let formData = new URLSearchParams();
-    formData.append('name', teamName);
-    formData.append('score', score);
+    let formData = new URLSearchParams(); formData.append('name', teamName); formData.append('score', score);
 
-    fetch(GOOGLE_SHEET_URL, { method: 'POST', body: formData })
-    .then(response => response.json())
-    .then(data => {
-        renderLeaderboard(data.leaderboard);
-        document.getElementById('hof-gameover-controls').classList.remove('hidden');
-    })
-    .catch(error => {
-        document.getElementById('leaderboard-list').innerHTML = "<p style='color:red; text-align:center;'>Gagal terhubung ke server Google Sheets.</p>";
-        document.getElementById('hof-gameover-controls').classList.remove('hidden');
-    });
+    fetch(GOOGLE_SHEET_URL, { method: 'POST', body: formData }).then(response => response.json())
+    .then(data => { renderLeaderboard(data.leaderboard); document.getElementById('hof-gameover-controls').classList.remove('hidden'); })
+    .catch(error => { document.getElementById('leaderboard-list').innerHTML = "<p style='color:red; text-align:center;'>Gagal terhubung ke server Google Sheets.</p>"; document.getElementById('hof-gameover-controls').classList.remove('hidden'); });
 }
 
 // --- RENDER ---
@@ -678,14 +582,18 @@ function drawMap() {
 
     ctx.strokeStyle = "rgba(233, 69, 96, 0.15)"; ctx.lineWidth = 120; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(currentPath[0].x, currentPath[0].y);
-    for (let i = 1; i < currentPath.length; i++) ctx.lineTo(currentPath[i].x, currentPath[i].y);
-    ctx.stroke();
+    for (let i = 1; i < currentPath.length; i++) ctx.lineTo(currentPath[i].x, currentPath[i].y); ctx.stroke();
 
-    ctx.strokeStyle = '#4b5d67'; ctx.lineWidth = 60; 
+    ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 60; 
     ctx.beginPath(); ctx.moveTo(currentPath[0].x, currentPath[0].y);
-    for (let i = 1; i < currentPath.length; i++) ctx.lineTo(currentPath[i].x, currentPath[i].y);
-    ctx.stroke();
+    for (let i = 1; i < currentPath.length; i++) ctx.lineTo(currentPath[i].x, currentPath[i].y); ctx.stroke();
     
+    // Garis putus-putus di tengah jalan (Efek Visual)
+    ctx.strokeStyle = '#34495e'; ctx.lineWidth = 4; ctx.setLineDash([15, 15]);
+    ctx.beginPath(); ctx.moveTo(currentPath[0].x, currentPath[0].y);
+    for (let i = 1; i < currentPath.length; i++) ctx.lineTo(currentPath[i].x, currentPath[i].y); ctx.stroke();
+    ctx.setLineDash([]); // Reset line dash
+
     ctx.fillStyle = "#e94560"; ctx.beginPath(); ctx.arc(currentPath[0].x, currentPath[0].y, 30, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = "#4ecca3"; ctx.beginPath(); ctx.arc(currentPath[currentPath.length-1].x, currentPath[currentPath.length-1].y, 40, 0, Math.PI*2); ctx.fill();
 }
@@ -693,8 +601,7 @@ function drawMap() {
 function gameLoop() {
     if(!gameStarted || isGameOver || isGameWon) return; 
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawMap();
+    ctx.clearRect(0, 0, canvas.width, canvas.height); drawMap();
 
     if (waveActive && enemiesSpawned < enemiesToSpawn) {
         let config = levelConfig[currentLevelIdx];
@@ -712,15 +619,16 @@ function gameLoop() {
 
     towers.forEach(t => t.update()); towers.forEach(t => t.draw());
     soldiers.forEach(s => s.draw());
+    
+    // Urutkan musuh berdasarkan Y agar sprite yang di bawah menimpa yang di atas (Efek 3D/Isometric)
+    enemies.sort((a, b) => a.y - b.y);
     enemies.forEach(e => { e.update(); e.draw(); });
     enemies = enemies.filter(e => e.hp > 0 && !e.isDead); 
-    projectiles.forEach(p => { p.update(); p.draw(); });
-    projectiles = projectiles.filter(p => p.active !== false);
-    particles.forEach(p => { p.update(); p.draw(); });
-    particles = particles.filter(p => p.life > 0);
+    
+    projectiles.forEach(p => { p.update(); p.draw(); }); projectiles = projectiles.filter(p => p.active !== false);
+    particles.forEach(p => { p.update(); p.draw(); }); particles = particles.filter(p => p.life > 0);
 
-    checkWaveProgress(); 
-    frameCount++;
+    checkWaveProgress(); frameCount++;
     if(baseHp > 0) requestAnimationFrame(gameLoop);
 }
 
@@ -731,55 +639,28 @@ function startGame() {
     let nameInput = document.getElementById('team-name-input').value.trim();
     if(!nameInput) { alert("Masukkan Nama Tim dulu!"); return; }
     
-    initAudio(); teamName = nameInput;
-    document.getElementById('team-display').innerText = teamName;
-    document.getElementById('main-menu').classList.add('hidden');
-    document.getElementById('game-container').classList.remove('hidden');
+    initAudio(); teamName = nameInput; document.getElementById('team-display').innerText = teamName;
+    document.getElementById('main-menu').classList.add('hidden'); document.getElementById('game-container').classList.remove('hidden');
     
-    loadMapForLevel(0); gameStarted = true;
-    loadNextQuestion(); updateUI(); startWave(); gameLoop(); 
+    loadMapForLevel(0); gameStarted = true; loadNextQuestion(); updateUI(); startWave(); gameLoop(); 
 }
 
 function playAgain() {
-    initAudio(); isGameOver = false; isGameWon = false;
-    baseHp = 10; currentEnergy = 0; score = 0; frameCount = 0;
-    currentLevelIdx = 0; currentWave = 1;
+    initAudio(); isGameOver = false; isGameWon = false; baseHp = 10; currentEnergy = 0; score = 0; frameCount = 0; currentLevelIdx = 0; currentWave = 1;
     enemies = []; towers = []; projectiles = []; soldiers = []; particles = [];
-    
-    document.getElementById('base-hp').innerText = baseHp;
-    document.getElementById('hof-screen').classList.add('hidden');
-    
+    document.getElementById('base-hp').innerText = baseHp; document.getElementById('hof-screen').classList.add('hidden');
     loadMapForLevel(0); updateUI(); startWave(); gameLoop();
 }
 
-function showGallery() {
-    document.getElementById('main-menu').classList.add('hidden');
-    document.getElementById('gallery-screen').classList.remove('hidden');
-}
-
-function hideGallery() {
-    document.getElementById('gallery-screen').classList.add('hidden');
-    document.getElementById('main-menu').classList.remove('hidden');
-}
+function showGallery() { document.getElementById('main-menu').classList.add('hidden'); document.getElementById('gallery-screen').classList.remove('hidden'); }
+function hideGallery() { document.getElementById('gallery-screen').classList.add('hidden'); document.getElementById('main-menu').classList.remove('hidden'); }
 
 function showHoF() {
-    document.getElementById('main-menu').classList.add('hidden');
-    document.getElementById('final-score-text').classList.add('hidden');
-    document.getElementById('hof-gameover-controls').classList.add('hidden');
-    document.getElementById('hof-close-btn').classList.remove('hidden');
-    
+    document.getElementById('main-menu').classList.add('hidden'); document.getElementById('final-score-text').classList.add('hidden'); document.getElementById('hof-gameover-controls').classList.add('hidden'); document.getElementById('hof-close-btn').classList.remove('hidden');
     document.getElementById('leaderboard-list').innerHTML = "<p style='text-align:center; color:#f9d342;'>Mengambil data dari server... 📡</p>";
     document.getElementById('hof-screen').classList.remove('hidden');
 
-    fetch(GOOGLE_SHEET_URL)
-    .then(response => response.json())
-    .then(data => { renderLeaderboard(data.leaderboard); })
-    .catch(error => {
-        document.getElementById('leaderboard-list').innerHTML = "<p style='color:red; text-align:center;'>Gagal terhubung ke server Google Sheets.</p>";
-    });
+    fetch(GOOGLE_SHEET_URL).then(response => response.json()).then(data => { renderLeaderboard(data.leaderboard); })
+    .catch(error => { document.getElementById('leaderboard-list').innerHTML = "<p style='color:red; text-align:center;'>Gagal terhubung ke server Google Sheets.</p>"; });
 }
-
-function hideHoF() {
-    document.getElementById('hof-screen').classList.add('hidden');
-    document.getElementById('main-menu').classList.remove('hidden');
-}
+function hideHoF() { document.getElementById('hof-screen').classList.add('hidden'); document.getElementById('main-menu').classList.remove('hidden'); }
