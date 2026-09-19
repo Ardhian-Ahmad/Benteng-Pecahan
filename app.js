@@ -11,76 +11,61 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// --- SISTEM AUDIO (Web Audio API Synthesizer 8-bit) ---
+// --- SISTEM AUDIO (Web Audio API) ---
 let audioCtx;
 function initAudio() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
 }
-
 function playSound(freq, type, duration, vol = 0.1) {
     if (!audioCtx) return;
     let osc = audioCtx.createOscillator();
     let gain = audioCtx.createGain();
-    osc.type = type; 
-    osc.frequency.value = freq;
-    osc.connect(gain); 
-    gain.connect(audioCtx.destination);
-    osc.start(); 
-    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+    osc.type = type; osc.frequency.value = freq;
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
     osc.stop(audioCtx.currentTime + duration);
 }
-
 const sfx = {
     shoot: () => playSound(400 + Math.random()*100, 'square', 0.1, 0.05),
     hit: () => playSound(100, 'sawtooth', 0.1, 0.1),
     correct: () => { playSound(600, 'sine', 0.1); setTimeout(()=>playSound(900, 'sine', 0.2), 100); },
     wrong: () => playSound(200, 'sawtooth', 0.3, 0.2),
     upgrade: () => { playSound(400, 'square', 0.1); setTimeout(()=>playSound(800, 'square', 0.2), 100); },
-    boss: () => playSound(50, 'sawtooth', 1.0, 0.5),
-    bossDestroy: () => playSound(100, 'square', 0.5, 0.5)
+    bossWarn: () => playSound(150, 'square', 0.3, 0.3),
+    bossDestroy: () => playSound(50, 'sawtooth', 0.8, 0.5)
 };
 
-// --- STATE GAME UTAMA ---
-let gameStarted = false;
-let isGameWon = false;
-let isGameOver = false;
-let teamName = "Tim Misterius";
-let baseHp = 10;
-let currentEnergy = 0; 
-let score = 0;
-let frameCount = 0;
+function showMessage(text, color = "#4ecca3") {
+    let msg = document.getElementById('message-area');
+    msg.innerText = text;
+    msg.style.color = color;
+}
 
-let enemies = [];
-let towers = [];
-let projectiles = [];
-let soldiers = [];
-let particles = [];
-let placingTowerType = null;
-let placingTowerCost = 0;
+// --- STATE GAME ---
+let gameStarted = false; let isGameWon = false; let isGameOver = false;
+let teamName = "Tim Misterius";
+let baseHp = 10; let currentEnergy = 0; let score = 0; let frameCount = 0;
+let enemies = []; let towers = []; let projectiles = []; let soldiers = []; let particles = [];
+let placingTowerType = null; let placingTowerCost = 0;
 
 // --- SISTEM LEVEL, WAVE & PETA ---
 const levelConfig = [
     { level: 1, maxWaves: 5, baseEnemyCount: 4, hpMult: 1.0, speedMult: 1.0 },
     { level: 2, maxWaves: 6, baseEnemyCount: 6, hpMult: 1.5, speedMult: 1.1 },
-    { level: 3, maxWaves: 8, baseEnemyCount: 8, hpMult: 2.5, speedMult: 1.3 }
+    { level: 3, maxWaves: 8, baseEnemyCount: 8, hpMult: 2.2, speedMult: 1.3 }
 ];
-
-let currentLevelIdx = 0;
-let currentWave = 1;
-let enemiesToSpawn = 0;
-let enemiesSpawned = 0;
-let waveActive = false;
+let currentLevelIdx = 0; let currentWave = 1;
+let enemiesToSpawn = 0; let enemiesSpawned = 0; let waveActive = false;
 let currentPath = [];
 
-// Fungsi untuk membuat peta berbeda tiap level
 function loadMapForLevel(level) {
     if (level === 0) currentPath = [{x:-50, y:h*0.3}, {x:w*0.3, y:h*0.3}, {x:w*0.3, y:h*0.7}, {x:w*0.7, y:h*0.7}, {x:w*0.7, y:h*0.2}, {x:w+50, y:h*0.2}];
     if (level === 1) currentPath = [{x:w*0.2, y:-50}, {x:w*0.2, y:h*0.5}, {x:w*0.6, y:h*0.5}, {x:w*0.6, y:h*0.8}, {x:w+50, y:h*0.8}];
     if (level === 2) currentPath = [{x:-50, y:h*0.8}, {x:w*0.2, y:h*0.8}, {x:w*0.2, y:h*0.3}, {x:w*0.5, y:h*0.3}, {x:w*0.5, y:h*0.8}, {x:w*0.8, y:h*0.8}, {x:w*0.8, y:-50}];
 }
 
-// --- BANK SOAL EDUKASI (Diperkaya) ---
+// --- BANK SOAL EDUKASI ---
 const quizBank = [
     { q: "1/2 + 1/4 = ...", options: ["3/4", "1/4", "1"], answer: "3/4" },
     { q: "Sederhanakan 6/8", options: ["1/4", "3/4", "1/2"], answer: "3/4" },
@@ -91,12 +76,10 @@ const quizBank = [
     { q: "Desimal dari 1/2", options: ["0.5", "0.2", "1.2"], answer: "0.5" },
     { q: "Persen dari 1/4", options: ["25%", "40%", "50%"], answer: "25%" },
     { q: "2/5 + 1/5 = ...", options: ["3/5", "3/10", "2/5"], answer: "3/5" },
-    { q: "Pizza potong 8, dimakan 2. Sisa?", options: ["6/8", "2/8", "4/8"], answer: "6/8" }
+    { q: "1/2 x 1/2 = ...", options: ["1/4", "1", "2/4"], answer: "1/4" }
 ];
-let currentQuestion = null;
-let isAnswering = false;
+let currentQuestion = null; let isAnswering = false;
 
-// --- FUNGSI KUIS ---
 function loadNextQuestion() {
     currentQuestion = quizBank[Math.floor(Math.random() * quizBank.length)];
     document.getElementById('question-text').innerText = "Soal: " + currentQuestion.q;
@@ -112,29 +95,20 @@ function loadNextQuestion() {
 
 function checkAnswer(btn) {
     if(isAnswering) return; 
-    isAnswering = true;
-    initAudio();
-
-    let buttons = document.querySelectorAll('.quiz-btn');
-    buttons.forEach(b => b.classList.add('locked'));
-    let msg = document.getElementById('message-area');
+    isAnswering = true; initAudio();
+    document.querySelectorAll('.quiz-btn').forEach(b => b.classList.add('locked'));
 
     if(btn.innerText === currentQuestion.answer) {
-        currentEnergy += 1;
-        score += 15; 
-        msg.innerText = "BENAR! +1 Energi ⭐";
-        msg.style.color = "#f9d342";
-        btn.style.background = "#ffd700"; 
-        sfx.correct();
+        currentEnergy += 1; score += 15; 
+        showMessage("BENAR! +1 Energi ⭐", "#f9d342");
+        btn.style.background = "#ffd700"; sfx.correct();
     } else {
-        currentEnergy = Math.max(0, currentEnergy - 1); // PENALTI
-        msg.innerText = "SALAH! Energi -1 ❌";
-        msg.style.color = "red";
-        btn.style.background = "#e94560"; 
-        sfx.wrong();
+        currentEnergy = Math.max(0, currentEnergy - 1); 
+        showMessage("SALAH! Energi -1 ❌", "red");
+        btn.style.background = "#e94560"; sfx.wrong();
     }
     updateUI();
-    setTimeout(loadNextQuestion, 1500); // Anti-spam delay
+    setTimeout(loadNextQuestion, 1500);
 }
 
 function updateUI() {
@@ -147,7 +121,7 @@ function updateUI() {
     });
 }
 
-// --- KALKULASI PETA & PENEMPATAN ---
+// --- KALKULASI PETA ---
 function distToSegment(px, py, x1, y1, x2, y2) {
     let l2 = (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1);
     if (l2 === 0) return Math.hypot(px-x1, py-y1);
@@ -155,47 +129,38 @@ function distToSegment(px, py, x1, y1, x2, y2) {
     let pX = x1 + t * (x2 - x1), pY = y1 + t * (y2 - y1);
     return { dist: Math.hypot(px - pX, py - pY), px: pX, py: pY };
 }
-
 function isInvalidPlacement(x, y) {
-    for(let t of towers) if(Math.hypot(t.x-x, t.y-y) < 50) return true; // Cek bentrok antar tower
+    for(let t of towers) if(Math.hypot(t.x-x, t.y-y) < 50) return true; 
     for(let i=0; i<currentPath.length-1; i++) {
         let d = distToSegment(x, y, currentPath[i].x, currentPath[i].y, currentPath[i+1].x, currentPath[i+1].y);
-        if(d.dist < 50) return true; // Cek bentrok dengan jalur
+        if(d.dist < 50) return true; 
     }
     return false;
 }
 
-// --- KELAS ENTITAS ---
+// --- KELAS ENTITAS (Dengan Gambar Custom) ---
 class Particle {
     constructor(x, y, color) {
         this.x = x; this.y = y; this.color = color;
-        this.vx = (Math.random() - 0.5) * 6;
-        this.vy = (Math.random() - 0.5) * 6;
+        this.vx = (Math.random() - 0.5) * 6; this.vy = (Math.random() - 0.5) * 6;
         this.life = 1.0;
     }
     update() { this.x += this.vx; this.y += this.vy; this.life -= 0.05; }
     draw() {
-        ctx.globalAlpha = Math.max(0, this.life);
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, 4, 4);
-        ctx.globalAlpha = 1.0;
+        ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, 4, 4); ctx.globalAlpha = 1.0;
     }
 }
 function spawnParticles(x, y, color) { for(let i=0; i<10; i++) particles.push(new Particle(x, y, color)); }
 
 class Soldier {
     constructor(x, y) {
-        this.x = x + (Math.random()-0.5)*30; 
-        this.y = y + (Math.random()-0.5)*30;
-        this.hp = 100;
-        this.damage = 10;
-        this.radius = 8;
+        this.x = x + (Math.random()-0.5)*30; this.y = y + (Math.random()-0.5)*30;
+        this.hp = 100; this.damage = 10; this.radius = 8;
     }
     draw() {
-        ctx.fillStyle = '#27ae60';
-        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'lightgreen';
-        ctx.fillRect(this.x - 10, this.y - 15, 20 * (this.hp / 100), 4);
+        ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'lightgreen'; ctx.fillRect(this.x - 10, this.y - 15, 20 * (this.hp / 100), 4);
     }
 }
 
@@ -203,7 +168,9 @@ class Enemy {
     constructor(typeParams) {
         let config = levelConfig[currentLevelIdx];
         this.x = currentPath[0].x; this.y = currentPath[0].y;
-        this.pathIndex = 1;
+        this.pathIndex = 1; this.isDead = false;
+        
+        this.type = typeParams.type;
         this.isBoss = typeParams.isBoss;
         
         this.normalSpeed = typeParams.baseSpeed * (this.isBoss ? 1 : config.speedMult);
@@ -213,17 +180,17 @@ class Enemy {
         this.radius = typeParams.radius;
         this.color = typeParams.color;
         this.abilityTimer = 0;
+        this.isCasting = false;
     }
 
     update() {
-        // Cek tabrakan dengan prajurit (Memblokir pergerakan)
         let blocked = false;
         for (let i = soldiers.length - 1; i >= 0; i--) {
             let s = soldiers[i];
             if (Math.hypot(this.x - s.x, this.y - s.y) < this.radius + s.radius + 5) {
                 blocked = true;
-                if (frameCount % 30 === 0) { // Saling serang tiap setengah detik
-                    s.hp -= (this.isBoss ? 40 : 15);
+                if (frameCount % 30 === 0) { 
+                    s.hp -= (this.isBoss ? 50 : 15);
                     this.hp -= s.damage;
                     spawnParticles(this.x, this.y, '#fff');
                 }
@@ -232,10 +199,10 @@ class Enemy {
             }
         }
         
-        this.speed = blocked ? 0 : this.normalSpeed;
+        this.speed = (blocked || this.isCasting) ? 0 : this.normalSpeed;
 
         if (this.pathIndex < currentPath.length) {
-            if(!blocked) {
+            if(!blocked && !this.isCasting) {
                 let target = currentPath[this.pathIndex];
                 let dx = target.x - this.x, dy = target.y - this.y;
                 let distance = Math.hypot(dx, dy);
@@ -243,20 +210,30 @@ class Enemy {
                 if (distance < this.speed) {
                     this.x = target.x; this.y = target.y; this.pathIndex++;
                 } else {
-                    this.x += (dx / distance) * this.speed; this.y += (dy / distance) * this.speed;
+                    let angle = Math.atan2(dy, dx);
+                    this.x += Math.cos(angle) * this.speed; this.y += Math.sin(angle) * this.speed;
+                    this.rotation = angle; // Untuk orientasi gambar
                 }
             }
 
-            // Skill Boss AoE (Menghancurkan menara terdekat dalam radius 100)
-            if (this.isBoss && frameCount % 120 === 0) { // Tiap 2 detik cek area
-                for (let i = towers.length - 1; i >= 0; i--) {
-                    if (Math.hypot(this.x - towers[i].x, this.y - towers[i].y) < 120) {
-                        spawnParticles(towers[i].x, towers[i].y, 'red');
-                        towers.splice(i, 1);
-                        sfx.bossDestroy();
-                        let msg = document.getElementById('message-area');
-                        msg.innerText = "⚠️ BOSS MENGHANCURKAN MENARAMU!";
-                        msg.style.color = "red";
+            // Skill Boss Nerf: Delay & Hanya Hancurkan 1 Tower
+            if (this.isBoss && towers.length > 0) {
+                this.abilityTimer++;
+                if (this.abilityTimer === 300) { // Peringatan mulai
+                    this.isCasting = true;
+                    showMessage("⚠️ AWAS! BOSS BERSIAK MENGHANCURKAN 1 MENARA!", "orange");
+                    sfx.bossWarn();
+                }
+                if (this.abilityTimer >= 400) { // Setelah delay ~1.5 detik
+                    this.isCasting = false; this.abilityTimer = 0;
+                    for (let i = towers.length - 1; i >= 0; i--) {
+                        if (Math.hypot(this.x - towers[i].x, this.y - towers[i].y) < 150) {
+                            spawnParticles(towers[i].x, towers[i].y, 'red');
+                            towers.splice(i, 1);
+                            sfx.bossDestroy();
+                            showMessage("⚠️ 1 MENARAMU HANCUR!", "red");
+                            break; // Hanya hancurkan 1
+                        }
                     }
                 }
             }
@@ -269,17 +246,45 @@ class Enemy {
     }
 
     draw() {
-        // Gambar Aura Boss
         if(this.isBoss) {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, 120, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(255, 0, 0, 0.15)";
+            ctx.beginPath(); ctx.arc(this.x, this.y, 150, 0, Math.PI * 2);
+            ctx.fillStyle = this.isCasting ? "rgba(255, 165, 0, 0.3)" : "rgba(255, 0, 0, 0.1)";
             ctx.fill();
         }
 
-        ctx.fillStyle = this.color;
-        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation || 0);
 
+        // Gambar Custom Berdasarkan Tipe Musuh
+        if (this.type === 'normal') {
+            ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill();
+            // Mata monster
+            ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(5, -5, 4, 0, Math.PI*2); ctx.arc(5, 5, 4, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(6, -5, 2, 0, Math.PI*2); ctx.arc(6, 5, 2, 0, Math.PI*2); ctx.fill();
+        } 
+        else if (this.type === 'fast') {
+            ctx.fillStyle = this.color;
+            ctx.beginPath(); ctx.moveTo(this.radius+5, 0); ctx.lineTo(-this.radius, -this.radius); ctx.lineTo(-this.radius/2, 0); ctx.lineTo(-this.radius, this.radius); ctx.closePath(); ctx.fill();
+        } 
+        else if (this.type === 'tank') {
+            ctx.fillStyle = this.color;
+            ctx.fillRect(-this.radius, -this.radius, this.radius*2, this.radius*2);
+            ctx.fillStyle = 'gray'; // Armor pelat
+            ctx.fillRect(-this.radius-4, -this.radius/2, 4, this.radius); ctx.fillRect(this.radius, -this.radius/2, 4, this.radius);
+        } 
+        else if (this.isBoss) {
+            ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill();
+            // Mahkota
+            ctx.fillStyle = 'gold'; ctx.beginPath(); ctx.moveTo(0, -this.radius-20); ctx.lineTo(15, -this.radius); ctx.lineTo(-15, -this.radius); ctx.closePath(); ctx.fill();
+            // Satu mata besar di tengah
+            ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill();
+        }
+
+        ctx.restore();
+
+        // Bar Darah
         ctx.fillStyle = 'red'; ctx.fillRect(this.x - 15, this.y - this.radius - 15, 30, 5);
         ctx.fillStyle = 'lightgreen'; ctx.fillRect(this.x - 15, this.y - this.radius - 15, 30 * (this.hp / this.maxHp), 5);
     }
@@ -288,21 +293,21 @@ class Enemy {
 class Tower {
     constructor(x, y, type) {
         this.x = x; this.y = y; this.type = type; this.tier = 1;
-        this.upgradeCost = type === 'barracks' ? 4 : type === 'ice' ? 2 : type === 'fire' ? 4 : 6;
+        this.upgradeCost = type === 'barracks' ? 3 : type === 'ice' ? 2 : type === 'fire' ? 3 : 5;
         
         if(type === 'barracks') {
-            this.range = 0; this.cooldown = 300; this.color = '#27ae60';
+            this.range = 0; this.cooldown = 400; this.color = '#27ae60';
             this.spawnSoldiers();
         } else {
-            this.range = type === 'ice' ? 120 : type === 'fire' ? 150 : 200;
-            this.cooldown = type === 'ice' ? 30 : type === 'fire' ? 60 : 150; 
+            // Rebalance Range & Cooldown
+            this.range = type === 'ice' ? 120 : type === 'fire' ? 140 : 200;
+            this.cooldown = type === 'ice' ? 20 : type === 'fire' ? 60 : 150; // Ice sangat cepat, Petir sangat lambat
             this.color = type === 'ice' ? '#a2d5f2' : type === 'fire' ? '#ff7b54' : '#ffd700';
         }
         this.timer = 0;
     }
 
     spawnSoldiers() {
-        // Cari titik jalur terdekat
         let minDist = Infinity, pX = this.x, pY = this.y;
         for(let i=0; i<currentPath.length-1; i++) {
             let d = distToSegment(this.x, this.y, currentPath[i].x, currentPath[i].y, currentPath[i+1].x, currentPath[i+1].y);
@@ -342,7 +347,6 @@ class Tower {
             ctx.beginPath(); ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
             ctx.fillStyle = "rgba(255, 255, 255, 0.05)"; ctx.fill();
         }
-        // Indikator Tier
         ctx.fillStyle = "white"; ctx.font = "14px Arial";
         ctx.fillText("Lv." + this.tier, this.x - 12, this.y + 5);
     }
@@ -352,8 +356,9 @@ class Projectile {
     constructor(x, y, target, type, tier) {
         this.x = x; this.y = y; this.target = target; this.type = type;
         this.speed = 12;
-        let baseDmg = type === 'fire' ? 30 : type === 'lightning' ? 120 : 10;
-        this.damage = baseDmg * (1 + (tier-1)*0.5); // Damage naik per tier
+        // Rebalance Base Damage
+        let baseDmg = type === 'fire' ? 25 : type === 'lightning' ? 100 : 8;
+        this.damage = baseDmg * (1 + (tier-1)*0.5); 
     }
 
     update() {
@@ -362,15 +367,22 @@ class Projectile {
         let distance = Math.hypot(dx, dy);
 
         if (distance < this.speed) {
-            this.target.hp -= this.damage;
-            if(this.type === 'ice') this.target.speed = Math.max(0.5, this.target.speed * 0.9); 
+            // SISTEM EFEKTIVITAS BENTURAN (Kelemahan Musuh)
+            let finalDmg = this.damage;
+            if(this.type === 'ice' && this.target.type === 'fast') finalDmg *= 2.0;
+            if(this.type === 'fire' && this.target.type === 'normal') finalDmg *= 2.0;
+            if(this.type === 'lightning' && this.target.type === 'tank') finalDmg *= 2.0;
+
+            this.target.hp -= finalDmg;
+            if(this.type === 'ice') this.target.speed = Math.max(0.5, this.target.speed * 0.85); 
+            
             this.active = false;
             sfx.hit();
             spawnParticles(this.target.x, this.target.y, this.type === 'fire'?'orange':'#fff');
 
             if(this.target.hp <= 0 && !this.target.isDead) {
                 this.target.isDead = true;
-                score += this.target.isBoss ? 500 : 20; 
+                score += this.target.isBoss ? 500 : (this.target.type === 'tank' ? 30 : 20); 
                 updateUI();
             }
         } else {
@@ -384,11 +396,11 @@ class Projectile {
     }
 }
 
-// --- INTERAKSI KANVAS (BANGUN & UPGRADE) ---
+// --- INTERAKSI KANVAS ---
 function selectTower(type, cost) {
     if (currentEnergy >= cost) {
         placingTowerType = type; placingTowerCost = cost;
-        document.getElementById('message-area').innerText = "Sentuh peta untuk menaruh menara!";
+        showMessage("Sentuh peta untuk menaruh menara!");
     }
 }
 
@@ -397,37 +409,31 @@ canvas.addEventListener('pointerdown', function(e) {
     let rect = canvas.getBoundingClientRect();
     let mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
 
-    // Mode Beli Menara
     if (placingTowerType && !isGameOver && !isGameWon) {
         if(isInvalidPlacement(mouseX, mouseY)) {
-            document.getElementById('message-area').innerText = "Terlalu dekat dengan jalan atau menara lain!";
+            showMessage("Terlalu dekat dengan jalan/menara!", "red");
             sfx.wrong(); return;
         }
         currentEnergy -= placingTowerCost;
         towers.push(new Tower(mouseX, mouseY, placingTowerType));
         placingTowerType = null;
         updateUI();
-        document.getElementById('message-area').innerText = "Jawab soal di bawah untuk energi!";
+        showMessage("Jawab soal di bawah untuk energi!");
         return;
     }
 
-    // Mode Upgrade Menara
     if(!placingTowerType && !isGameOver) {
         for(let t of towers) {
             if(Math.hypot(mouseX - t.x, mouseY - t.y) < 30) {
                 if(t.tier < 3 && currentEnergy >= t.upgradeCost) {
                     currentEnergy -= t.upgradeCost;
-                    t.tier++;
-                    t.range *= 1.1;
-                    t.upgradeCost *= 2;
-                    sfx.upgrade();
-                    spawnParticles(t.x, t.y, '#ffd700');
-                    updateUI();
-                    document.getElementById('message-area').innerText = `${t.type.toUpperCase()} di-Upgrade ke Lv.${t.tier}!`;
+                    t.tier++; t.range *= 1.1; t.upgradeCost *= 2;
+                    sfx.upgrade(); spawnParticles(t.x, t.y, '#ffd700'); updateUI();
+                    showMessage(`${t.type.toUpperCase()} Naik ke Lv.${t.tier}!`);
                 } else if(t.tier === 3) {
-                    document.getElementById('message-area').innerText = "Level Maksimal!";
+                    showMessage("Level Maksimal!");
                 } else {
-                    document.getElementById('message-area').innerText = `Butuh ${t.upgradeCost} Energi untuk Upgrade!`;
+                    showMessage(`Butuh ${t.upgradeCost} Energi untuk Upgrade!`, "red");
                 }
                 return;
             }
@@ -437,17 +443,16 @@ canvas.addEventListener('pointerdown', function(e) {
 
 // --- LOGIKA WAVE & LEVEL ---
 const enemyTypesArr = [
-    { name: "Normal", color: '#e94560', baseHp: 100, baseSpeed: 1.5, radius: 15, isBoss: false }, 
-    { name: "Cepat", color: '#f9d342', baseHp: 50, baseSpeed: 3.0, radius: 12, isBoss: false },   
-    { name: "Tank", color: '#9b59b6', baseHp: 250, baseSpeed: 0.8, radius: 22, isBoss: false }    
+    { type: "normal", color: '#e94560', baseHp: 100, baseSpeed: 1.5, radius: 15, isBoss: false }, 
+    { type: "fast", color: '#f9d342', baseHp: 50, baseSpeed: 3.5, radius: 12, isBoss: false },   
+    { type: "tank", color: '#9b59b6', baseHp: 300, baseSpeed: 0.8, radius: 22, isBoss: false }    
 ];
-const bossType = { name: "BOSS", color: '#ff0044', baseHp: 2000, baseSpeed: 0.6, radius: 45, isBoss: true };
+const bossType = { type: "boss", color: '#ff0044', baseHp: 2500, baseSpeed: 0.6, radius: 45, isBoss: true };
 
 function startWave() {
     let config = levelConfig[currentLevelIdx];
     enemiesToSpawn = config.baseEnemyCount + (currentWave * 2);
-    enemiesSpawned = 0;
-    waveActive = true;
+    enemiesSpawned = 0; waveActive = true;
     document.getElementById('wave-display').innerText = `Lvl ${config.level} - Wave ${currentWave} / ${config.maxWaves}`;
     document.getElementById('announcement-overlay').classList.add('hidden');
 }
@@ -469,8 +474,8 @@ function checkWaveProgress() {
         } else {
             if (currentLevelIdx < levelConfig.length - 1) {
                 currentLevelIdx++; currentWave = 1;
-                loadMapForLevel(currentLevelIdx); // Ganti Peta
-                towers = []; soldiers = []; projectiles = []; particles = []; // Reset peta
+                loadMapForLevel(currentLevelIdx); 
+                towers = []; soldiers = []; projectiles = []; particles = []; 
                 showAnnouncement(`Level ${config.level} Selesai!`, `Memasuki Level ${levelConfig[currentLevelIdx].level}...`, 4000);
             } else {
                 handleEndGame(true); 
@@ -483,11 +488,10 @@ function handleEndGame(isWin) {
     isGameOver = true; isGameWon = isWin;
     document.getElementById('announcement-overlay').classList.add('hidden');
     
-    // Simpan ke LocalStorage
     let hof = JSON.parse(localStorage.getItem('pecahanHOF')) || [];
     let existingIndex = hof.findIndex(e => e.name === teamName);
     if(existingIndex !== -1) {
-        if(score > hof[existingIndex].score) hof[existingIndex].score = score; // Update best score
+        if(score > hof[existingIndex].score) hof[existingIndex].score = score;
     } else {
         hof.push({ name: teamName, score: score });
     }
@@ -496,8 +500,8 @@ function handleEndGame(isWin) {
     localStorage.setItem('pecahanHOF', JSON.stringify(hof));
 
     document.getElementById('final-score-text').innerText = `Skor Akhir ${teamName}: ${score}`;
-    let listHTML = "<ol style='padding-left: 20px; font-size:1.5rem;'>";
-    hof.forEach(e => { listHTML += `<li style='margin-bottom:8px'><b>${e.name}</b> : ${e.score} Poin</li>`; });
+    let listHTML = "<ol style='padding-left: 20px; font-size:1.5rem; text-align:left;'>";
+    hof.forEach(e => { listHTML += `<li style='margin-bottom:8px'><b>${e.name}</b> : ${e.score} Pts</li>`; });
     listHTML += "</ol>";
     document.getElementById('leaderboard-list').innerHTML = listHTML;
     document.getElementById('hof-screen').classList.remove('hidden');
@@ -522,12 +526,10 @@ function gameLoop() {
         if (currentWave === config.maxWaves && enemiesSpawned === enemiesToSpawn - 1) {
             enemies.push(new Enemy(bossType));
             enemiesSpawned++;
-            sfx.boss();
-            document.getElementById('message-area').innerText = "⚠️ BOSS AREA MUNCUL! JAUHKAN MENARA!";
+            sfx.bossWarn();
         } else {
             let spawnInterval = 120 - (currentLevelIdx * 20); 
             if (frameCount % spawnInterval === 0) {
-                // Wave 1 tidak ada musuh cepat
                 let availableTypes = (currentLevelIdx === 0 && currentWave === 1) ? [enemyTypesArr[0], enemyTypesArr[2]] : enemyTypesArr;
                 let randomType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
                 enemies.push(new Enemy(randomType));
@@ -555,23 +557,16 @@ function startGame() {
     let nameInput = document.getElementById('team-name-input').value.trim();
     if(!nameInput) { alert("Masukkan Nama Tim dulu!"); return; }
     
-    initAudio();
-    teamName = nameInput;
+    initAudio(); teamName = nameInput;
     document.getElementById('team-display').innerText = teamName;
     document.getElementById('start-screen').classList.add('hidden');
     
-    loadMapForLevel(0);
-    gameStarted = true;
-    loadNextQuestion(); 
-    updateUI();
-    startWave(); 
-    gameLoop(); 
+    loadMapForLevel(0); gameStarted = true;
+    loadNextQuestion(); updateUI(); startWave(); gameLoop(); 
 }
 
 function playAgain() {
-    // Soft Reset
-    initAudio();
-    isGameOver = false; isGameWon = false;
+    initAudio(); isGameOver = false; isGameWon = false;
     baseHp = 10; currentEnergy = 0; score = 0; frameCount = 0;
     currentLevelIdx = 0; currentWave = 1;
     enemies = []; towers = []; projectiles = []; soldiers = []; particles = [];
@@ -579,8 +574,5 @@ function playAgain() {
     document.getElementById('base-hp').innerText = baseHp;
     document.getElementById('hof-screen').classList.add('hidden');
     
-    loadMapForLevel(0);
-    updateUI();
-    startWave();
-    gameLoop();
+    loadMapForLevel(0); updateUI(); startWave(); gameLoop();
 }
