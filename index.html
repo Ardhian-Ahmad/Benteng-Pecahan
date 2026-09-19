@@ -2,13 +2,12 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <!-- Meta khusus agar tidak bisa di-zoom ganda di HP/iOS -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Benteng Pecahan - Edisi Spesial Kelas 6</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Layar Awal & Registrasi -->
+    <!-- Layar Awal & Registrasi Tim -->
     <div id="start-screen">
         <h1 class="game-title">🏰 Benteng Pecahan</h1>
         <div class="instructions">
@@ -17,12 +16,11 @@
                 <li>❄️ <b>Es:</b> Cepat. Damage x2 lawan monster Cepat.</li>
                 <li>🔥 <b>Api:</b> Area. Damage x2 lawan monster Normal.</li>
                 <li>⚡ <b>Petir:</b> Kuat. Damage x2 tembus monster Tank.</li>
-                <li>🛡️ <b>Barak:</b> Munculkan prajurit pemblokir jalan.</li>
+                <li>🛡️ <b>Barak:</b> 3 Prajurit memblokir musuh (Bisa hidup kembali).</li>
                 <li style="color: #ff7b54; margin-top:10px;">⚠️ Jawab salah kuis pecahan = Energi -1 !</li>
             </ul>
         </div>
         <input type="text" id="team-name-input" placeholder="Masukkan Nama Tim" maxlength="15">
-        <!-- Cukup gunakan onclick, CSS akan mengurus dukungan sentuhan -->
         <button id="start-btn" onclick="startGame()">MULAI GAME!</button>
     </div>
 
@@ -41,7 +39,7 @@
         <button id="new-team-btn" onclick="location.reload()" style="margin-top: 15px; background: #9b59b6;">GANTI TIM BARU</button>
     </div>
 
-    <!-- Struktur Baru Flexbox agar Peta Tidak Tertutup Panel -->
+    <!-- Struktur Baru Flexbox Adaptif -->
     <div id="game-container">
         <!-- Antarmuka Atas -->
         <div id="top-bar">
@@ -54,7 +52,7 @@
 
         <div id="message-area" class="message-banner">Pilih jawaban yang tepat!</div>
 
-        <!-- Ruang Tengah: Berisi Peta (Kiri) dan Toko (Kanan/Bawah) -->
+        <!-- Ruang Tengah Dinamis -->
         <div id="middle-section">
             <div id="canvas-container">
                 <canvas id="gameCanvas"></canvas>
@@ -89,6 +87,8 @@
         </div>
     </div>
 
+    <!-- Script Pendukung -->
+    <script src="questions.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
