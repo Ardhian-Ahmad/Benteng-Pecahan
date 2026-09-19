@@ -2,7 +2,6 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Mengatur ukuran kanvas sesuai layar
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -11,8 +10,9 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 // --- STATE (KONDISI) GAME ---
+let gameStarted = false;
 let baseHp = 10;
-let currentEnergy = 0; // Disimpan dalam desimal untuk kalkulasi mesin
+let currentEnergy = 0; // Energi sekarang dalam bentuk poin bulat (1, 2, 3)
 let enemies = [];
 let towers = [];
 let projectiles = [];
@@ -20,16 +20,25 @@ let frameCount = 0;
 let placingTowerType = null;
 let placingTowerCost = 0;
 
-// Daftar pecahan yang akan muncul sebagai gelembung
-const fractionVariants = [
-    { text: "1/4", value: 0.25 },
-    { text: "1/2", value: 0.5 },
-    { text: "3/4", value: 0.75 },
-    { text: "1", value: 1.0 }
+// --- BANK SOAL PECAHAN (EDUKASI) ---
+const quizBank = [
+    { q: "1/2 + 1/4 = ...", options: ["3/4", "1/4", "1"], answer: "3/4" },
+    { q: "Bentuk sederhana dari 4/8 adalah...", options: ["1/4", "1/3", "1/2"], answer: "1/2" },
+    { q: "1 - 1/3 = ...", options: ["1/3", "2/3", "1"], answer: "2/3" },
+    { q: "Pecahan senilai dengan 2/3", options: ["4/6", "3/4", "4/5"], answer: "4/6" },
+    { q: "1/2 x 1/2 = ...", options: ["1/4", "1", "2/4"], answer: "1/4" },
+    { q: "Manakah yang paling besar?", options: ["1/2", "3/4", "1/4"], answer: "3/4" }
+];
+let currentQuestion = null;
+
+// --- VARIASI MUSUH ---
+const enemyTypes = [
+    { name: "Normal", color: '#e94560', maxHp: 100, speed: 1.5, radius: 15 }, // Merah (Standar)
+    { name: "Cepat", color: '#f9d342', maxHp: 60, speed: 2.8, radius: 12 },   // Kuning (Cepat, HP tipis)
+    { name: "Tank", color: '#9b59b6', maxHp: 300, speed: 0.8, radius: 22 }    // Ungu (Lambat, HP tebal)
 ];
 
-// --- JALUR MUSUH (COORDINATE MOVEMENT) ---
-// Membuat titik koordinat sederhana (Zigzag)
+// Koordinat Jalur Musuh
 const path = [
     { x: -50, y: canvas.height * 0.3 },
     { x: canvas.width * 0.4, y: canvas.height * 0.3 },
@@ -39,16 +48,48 @@ const path = [
     { x: canvas.width + 50, y: canvas.height * 0.2 }
 ];
 
+// --- FUNGSI KUIS EDUKASI ---
+function loadNextQuestion() {
+    // Pilih soal acak
+    currentQuestion = quizBank[Math.floor(Math.random() * quizBank.length)];
+    document.getElementById('question-text').innerText = "Soal: " + currentQuestion.q;
+    
+    // Acak posisi jawaban
+    let shuffledOptions = [...currentQuestion.options].sort(() => Math.random() - 0.5);
+    let buttons = document.querySelectorAll('.quiz-btn');
+    
+    buttons.forEach((btn, index) => {
+        btn.innerText = shuffledOptions[index];
+        btn.style.background = "#4ecca3"; // Kembalikan warna ke hijau
+    });
+}
+
+function checkAnswer(btn) {
+    if(btn.innerText === currentQuestion.answer) {
+        currentEnergy += 1; // Jawaban benar = 1 Energi
+        updateUI();
+        document.getElementById('message-area').innerText = "BENAR! +1 Energi ⭐";
+        document.getElementById('message-area').style.color = "#f9d342";
+        btn.style.background = "#ffd700"; // Efek emas
+        setTimeout(loadNextQuestion, 500); // Ganti soal setelah 0.5 detik
+    } else {
+        document.getElementById('message-area').innerText = "SALAH! Coba lagi.";
+        document.getElementById('message-area').style.color = "red";
+        btn.style.background = "#e94560"; // Tombol jadi merah jika salah
+    }
+}
+
 // --- KELAS OBJEK GAME ---
 class Enemy {
-    constructor() {
+    constructor(typeParams) {
         this.x = path[0].x;
         this.y = path[0].y;
         this.pathIndex = 1;
-        this.speed = 1.5;
-        this.hp = 100;
-        this.maxHp = 100;
-        this.radius = 15;
+        this.speed = typeParams.speed;
+        this.hp = typeParams.maxHp;
+        this.maxHp = typeParams.maxHp;
+        this.radius = typeParams.radius;
+        this.color = typeParams.color;
     }
 
     update() {
@@ -67,15 +108,15 @@ class Enemy {
                 this.y += (dy / distance) * this.speed;
             }
         } else {
-            // Musuh mencapai benteng
             baseHp--;
             document.getElementById('base-hp').innerText = baseHp;
-            this.hp = 0; // Hilangkan musuh
+            this.hp = 0; 
+            if(baseHp <= 0) alert("GAME OVER! Benteng Hancur. Muat ulang halaman untuk bermain lagi.");
         }
     }
 
     draw() {
-        ctx.fillStyle = '#e94560';
+        ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -94,7 +135,7 @@ class Tower {
         this.y = y;
         this.type = type;
         this.range = 150;
-        this.cooldown = 60; // Tembak setiap 60 frame (1 detik)
+        this.cooldown = type === 'ice' ? 40 : type === 'fire' ? 80 : 120; 
         this.timer = 0;
         this.color = type === 'ice' ? '#a2d5f2' : type === 'fire' ? '#ff7b54' : '#ffd700';
     }
@@ -102,7 +143,6 @@ class Tower {
     update() {
         this.timer++;
         if (this.timer >= this.cooldown) {
-            // Cari musuh terdekat
             let target = null;
             let closestDist = this.range;
             for (let enemy of enemies) {
@@ -124,7 +164,6 @@ class Tower {
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x - 20, this.y - 20, 40, 40);
         
-        // Render radius serangan transparan
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
@@ -137,9 +176,9 @@ class Projectile {
         this.x = x;
         this.y = y;
         this.target = target;
-        this.speed = 5;
+        this.speed = 8;
         this.type = type;
-        this.damage = type === 'fire' ? 40 : type === 'lightning' ? 80 : 20;
+        this.damage = type === 'fire' ? 30 : type === 'lightning' ? 100 : 15;
     }
 
     update() {
@@ -149,6 +188,7 @@ class Projectile {
 
         if (distance < this.speed) {
             this.target.hp -= this.damage;
+            if(this.type === 'ice') this.target.speed *= 0.9; // Efek melambat
             this.active = false;
         } else {
             this.x += (dx / distance) * this.speed;
@@ -157,36 +197,19 @@ class Projectile {
     }
 
     draw() {
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = this.type === 'ice' ? '#fff' : this.type === 'fire' ? 'orange' : 'yellow';
         ctx.beginPath();
         ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
         ctx.fill();
     }
 }
 
-// --- LOGIKA GAME & UI ---
-
-// Fungsi helper mengubah nilai desimal ke string pecahan (0.75 -> "3/4")
-function decimalToFractionStr(decimal) {
-    if (decimal === 0) return "0";
-    let whole = Math.floor(decimal);
-    let rem = decimal - whole;
-    let frac = "";
-    if (rem === 0.25) frac = "1/4";
-    else if (rem === 0.5) frac = "1/2";
-    else if (rem === 0.75) frac = "3/4";
-    
-    if (whole > 0 && frac !== "") return `${whole} ${frac}`;
-    if (whole > 0 && frac === "") return `${whole}`;
-    return frac;
-}
-
-// Memperbarui tampilan UI & Cek tombol
+// --- LOGIKA UI & INTERAKSI PEMAIN ---
 function updateUI() {
-    document.getElementById('energy-display').innerText = decimalToFractionStr(currentEnergy);
+    document.getElementById('energy-display').innerText = currentEnergy;
     
     document.querySelectorAll('.tower-btn').forEach(btn => {
-        let cost = parseFloat(btn.getAttribute('data-cost'));
+        let cost = parseInt(btn.getAttribute('data-cost'));
         if (currentEnergy >= cost) {
             btn.classList.remove('disabled');
         } else {
@@ -195,62 +218,43 @@ function updateUI() {
     });
 }
 
-// Interaksi Gelembung Pecahan
-function spawnFractionBubble() {
-    const pool = document.getElementById('fraction-pool');
-    if (pool.children.length >= 6) return; // Maksimal 6 gelembung di layar
-
-    let randomFrac = fractionVariants[Math.floor(Math.random() * fractionVariants.length)];
-    let bubble = document.createElement('div');
-    bubble.className = 'bubble';
-    bubble.innerText = randomFrac.text;
-
-    bubble.addEventListener('pointerdown', function() {
-        currentEnergy += randomFrac.value;
-        updateUI();
-        pool.removeChild(bubble);
-    });
-
-    pool.appendChild(bubble);
-}
-
-// Interaksi Toko Menara
+// Beli Menara
 document.querySelectorAll('.tower-btn').forEach(btn => {
     btn.addEventListener('pointerdown', function(e) {
-        let cost = parseFloat(this.getAttribute('data-cost'));
+        let cost = parseInt(this.getAttribute('data-cost'));
         let type = this.getAttribute('data-type');
         
         if (currentEnergy >= cost) {
             placingTowerType = type;
             placingTowerCost = cost;
-            document.getElementById('message-area').innerText = "Sentuh area kosong di peta untuk membangun!";
+            document.getElementById('message-area').innerText = "Sentuh peta untuk menaruh menara!";
+            document.getElementById('message-area').style.color = "#4ecca3";
         }
     });
 });
 
-// Penempatan Menara di Kanvas
+// Letakkan Menara di Peta
 canvas.addEventListener('pointerdown', function(e) {
     if (placingTowerType) {
         let rect = canvas.getBoundingClientRect();
         let mouseX = e.clientX - rect.left;
         let mouseY = e.clientY - rect.top;
 
-        // Beli dan Tempatkan
         currentEnergy -= placingTowerCost;
         towers.push(new Tower(mouseX, mouseY, placingTowerType));
         
-        // Reset state
         placingTowerType = null;
         updateUI();
-        document.getElementById('message-area').innerText = "Menara berhasil dibangun!";
+        document.getElementById('message-area').innerText = "Jawab soal di bawah untuk energi!";
     }
 });
 
 // --- RENDER & GAME LOOP MAIN ENGINE ---
 function drawMap() {
     ctx.strokeStyle = '#4b5d67';
-    ctx.lineWidth = 40;
+    ctx.lineWidth = 50;
     ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(path[0].x, path[0].y);
     for (let i = 1; i < path.length; i++) {
@@ -260,34 +264,36 @@ function drawMap() {
 }
 
 function gameLoop() {
-    // Bersihkan layar setiap frame
+    if(!gameStarted) return; // Tunggu tombol mulai ditekan
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
     drawMap();
 
-    // Spawn Musuh setiap 2 detik (120 frame pada 60fps)
+    // Spawn Musuh secara acak setiap 2 detik (120 frame)
     if (frameCount % 120 === 0) {
-        enemies.push(new Enemy());
+        let randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+        enemies.push(new Enemy(randomType));
     }
 
-    // Spawn Gelembung setiap 1.5 detik
-    if (frameCount % 90 === 0) {
-        spawnFractionBubble();
-    }
-
-    // Update & Draw Objek
     towers.forEach(t => { t.update(); t.draw(); });
     
     enemies.forEach(e => { e.update(); e.draw(); });
-    enemies = enemies.filter(e => e.hp > 0); // Hapus musuh mati
+    enemies = enemies.filter(e => e.hp > 0); 
 
     projectiles.forEach(p => { p.update(); p.draw(); });
     projectiles = projectiles.filter(p => p.active !== false);
 
     frameCount++;
-    requestAnimationFrame(gameLoop);
+    if(baseHp > 0) {
+        requestAnimationFrame(gameLoop);
+    }
 }
 
-// Mulai Game
-updateUI();
-gameLoop();
+// --- TOMBOL MULAI ---
+document.getElementById('start-btn').addEventListener('click', () => {
+    document.getElementById('start-screen').classList.add('hidden');
+    gameStarted = true;
+    loadNextQuestion(); // Memanggil soal pertama
+    updateUI();
+    gameLoop(); // Menjalankan engine
+});
