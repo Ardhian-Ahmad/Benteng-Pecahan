@@ -74,11 +74,10 @@ function loadMapForLevel(level) {
     if (level === 2) currentPath = [{x:-50, y:H*0.8}, {x:W*0.2, y:H*0.8}, {x:W*0.2, y:H*0.3}, {x:W*0.5, y:H*0.3}, {x:W*0.5, y:H*0.8}, {x:W*0.8, y:H*0.8}, {x:W*0.8, y:-50}];
 }
 
-// --- FUNGSI KUIS (Mengambil dari questions.js) ---
+// --- FUNGSI KUIS (Dari questions.js) ---
 let currentQuestion = null; let isAnswering = false;
 
 function loadNextQuestion() {
-    // quizBank dipanggil dari file questions.js
     currentQuestion = quizBank[Math.floor(Math.random() * quizBank.length)];
     document.getElementById('question-text').innerText = "Soal: " + currentQuestion.q;
     let shuffledOptions = [...currentQuestion.options].sort(() => Math.random() - 0.5);
@@ -169,12 +168,16 @@ class Enemy {
         this.x = currentPath[0].x; this.y = currentPath[0].y;
         this.pathIndex = 1; this.isDead = false;
         
-        this.type = typeParams.type; this.isBoss = typeParams.isBoss;
+        // Atribut diambil dari file enemies.js
+        this.type = typeParams.type; 
+        this.isBoss = typeParams.isBoss;
         this.normalSpeed = typeParams.baseSpeed * (this.isBoss ? 1 : config.speedMult);
         this.speed = this.normalSpeed;
         this.maxHp = typeParams.baseHp * (this.isBoss ? 1 : config.hpMult);
-        this.hp = this.maxHp; this.radius = typeParams.radius;
+        this.hp = this.maxHp; 
+        this.radius = typeParams.radius;
         this.color = typeParams.color;
+        
         this.abilityTimer = 0; this.isCasting = false;
     }
 
@@ -214,6 +217,7 @@ class Enemy {
                 }
             }
 
+            // Skill Boss menghancurkan Menara
             if (this.isBoss && towers.length > 0) {
                 this.abilityTimer++;
                 if (this.abilityTimer === 300) { 
@@ -235,10 +239,21 @@ class Enemy {
                 }
             }
         } else {
-            baseHp -= this.isBoss ? 5 : 1; 
-            document.getElementById('base-hp').innerText = baseHp;
-            this.hp = 0; 
-            if(baseHp <= 0 && !isGameOver) handleEndGame(false);
+            // JIKA MUSUH MENCAPAI AKHIR PETA
+            if (this.isBoss) {
+                baseHp = 0; // Instant Kill jika Boss lolos
+                document.getElementById('base-hp').innerText = baseHp;
+                this.hp = 0; 
+                if(!isGameOver) {
+                    showMessage("⚠️ BENTENG DIHANCURKAN BOSS!", "red");
+                    handleEndGame(false);
+                }
+            } else {
+                baseHp -= 1; 
+                document.getElementById('base-hp').innerText = baseHp;
+                this.hp = 0; 
+                if(baseHp <= 0 && !isGameOver) handleEndGame(false);
+            }
         }
     }
 
@@ -286,12 +301,11 @@ class Tower {
         
         if(type === 'barracks') {
             this.range = 0; 
-            this.cooldown = 180; // 3 detik respawn per prajurit
+            this.cooldown = 180; 
             this.color = '#27ae60';
             this.mySoldiers = [];
             this.spawnX = 0; this.spawnY = 0;
             this.calculateSpawnPoint();
-            // Munculkan 3 pasukan di awal
             for(let i=0; i<3; i++) this.spawnOneSoldier();
         } else {
             this.range = type === 'ice' ? 140 : type === 'fire' ? 160 : 220;
@@ -317,18 +331,12 @@ class Tower {
 
     update() {
         if(this.type === 'barracks') {
-            // Bersihkan pasukan yang sudah mati dari daftar absensi barak ini
             this.mySoldiers = this.mySoldiers.filter(s => !s.isDead);
-            
-            // Limit maksimal 3 pasukan. Jika kurang, mulai menghitung mundur untuk respawn.
             if(this.mySoldiers.length < 3) {
                 this.timer++;
-                if(this.timer >= this.cooldown) { 
-                    this.spawnOneSoldier(); 
-                    this.timer = 0; 
-                }
+                if(this.timer >= this.cooldown) { this.spawnOneSoldier(); this.timer = 0; }
             } else {
-                this.timer = 0; // Reset timer jika pasukan penuh
+                this.timer = 0; 
             }
             return;
         }
@@ -447,13 +455,6 @@ canvas.addEventListener('pointerdown', function(e) {
 });
 
 // --- LOGIKA WAVE & LEVEL ---
-const enemyTypesArr = [
-    { type: "normal", color: '#e94560', baseHp: 100, baseSpeed: 1.5, radius: 18, isBoss: false }, 
-    { type: "fast", color: '#f9d342', baseHp: 50, baseSpeed: 3.5, radius: 15, isBoss: false },   
-    { type: "tank", color: '#9b59b6', baseHp: 350, baseSpeed: 0.8, radius: 25, isBoss: false }    
-];
-const bossType = { type: "boss", color: '#ff0044', baseHp: 3000, baseSpeed: 0.6, radius: 50, isBoss: true };
-
 function startWave() {
     let config = levelConfig[currentLevelIdx];
     enemiesToSpawn = config.baseEnemyCount + (currentWave * 2);
@@ -536,6 +537,7 @@ function gameLoop() {
         } else {
             let spawnInterval = 120 - (currentLevelIdx * 20); 
             if (frameCount % spawnInterval === 0) {
+                // Diambil dari enemies.js (enemyTypesArr)
                 let availableTypes = (currentLevelIdx === 0 && currentWave === 1) ? [enemyTypesArr[0], enemyTypesArr[2]] : enemyTypesArr;
                 let randomType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
                 enemies.push(new Enemy(randomType)); enemiesSpawned++;
