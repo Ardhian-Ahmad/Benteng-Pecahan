@@ -1,5 +1,5 @@
-// URL Google Sheets (TIDAK PERLU DIUBAH JIKA ANDA SUDAH MENYIAPKANNYA)
-const GOOGLE_SHEET_URL = "PASTE_URL_WEB_APP_DISINI";
+// Masukkan URL Aplikasi Web Google Apps Script Anda di dalam tanda kutip ini:
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxEeaDFfJtfQqhPrMfr2VpmlQJew4LvYfCYUqG31i-2yXWmTfCRN7i9UmFE8ssgQL5gWg/exec";
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -44,29 +44,64 @@ function showMessage(text, color = "#4ecca3") {
     msg.innerText = text; msg.style.color = color;
 }
 
-// --- UI DINAMIS ---
+// --- UI DINAMIS (Sinkronisasi Cerdas dengan towers.js) ---
 function buildShopAndGallery() {
     let shopContainer = document.getElementById('shop-buttons-container');
     let galTower = document.getElementById('tower-gallery-list');
     let galEnemy = document.getElementById('enemy-gallery-list');
     
     shopContainer.innerHTML = '';
+    galTower.innerHTML = '';
+
     Object.values(towerConfig).forEach(t => {
+        // Render Tombol Toko
         shopContainer.innerHTML += `
             <button class="tower-btn" data-type="${t.id}" data-cost="${t.cost}" onclick="selectTower('${t.id}', ${t.cost})">
                 <span class="tower-name">${t.icon} ${t.name}</span>
                 <span class="tower-cost">${t.cost} Energi</span>
             </button>
         `;
-        let startDmg = t.levels[0].damage || 'AoE';
+
+        // Render Kartu Galeri dengan Data Level 1
+        let base = t.levels[0];
+        let statBadges = "";
+
+        // Pengecekan cerdas tipe menara untuk membuat lencana (badge) yang tepat
+        if (t.id === 'barracks') {
+            statBadges += `<span class="badge badge-dmg">Prajurit: ${base.spawnCount}</span>`;
+            statBadges += `<span class="badge badge-speed">HP Prajurit: ${base.soldier.hp}</span>`;
+            statBadges += `<span class="badge badge-dmg">Dmg Prajurit: ${base.soldier.damage}</span>`;
+            if (base.hasLeader) statBadges += `<span class="badge badge-cost">Leader: Ya</span>`;
+        } else {
+            statBadges += `<span class="badge badge-dmg">Dmg Awal: ${base.damage}</span>`;
+            statBadges += `<span class="badge badge-speed">Jangkauan: ${base.range}</span>`;
+            
+            // Render atribut spesial dari towers.js
+            if (base.effect) {
+                if (base.effect.type === 'slow') {
+                    let slowPercent = base.effect.amount * 100;
+                    let durasi = base.effect.duration / 60; // ubah frame ke detik
+                    statBadges += `<span class="badge badge-cost">Slow: ${slowPercent}% (${durasi}s)</span>`;
+                } else if (base.effect.type === 'burn') {
+                    statBadges += `<span class="badge badge-cost">Burn Dmg: ${base.effect.tickDamage}</span>`;
+                } else if (base.effect.type === 'pierce') {
+                    statBadges += `<span class="badge badge-cost">Vs Tank: x${base.effect.multiplier} Dmg</span>`;
+                }
+            }
+        }
+
         galTower.innerHTML += `
             <div class="gallery-card">
                 <div class="card-icon">${t.icon}</div>
                 <div class="card-info">
                     <h4>${t.name}</h4>
-                    <span class="badge badge-cost">Harga: ${t.cost} ⭐</span>
-                    <span class="badge badge-dmg">Dmg Awal: ${startDmg}</span>
-                    <p>${t.desc}</p>
+                    <span class="badge badge-cost">Harga Beli: ${t.cost} ⭐</span>
+                    <br>
+                    <div style="margin-top:8px; margin-bottom:8px;">
+                        ${statBadges}
+                    </div>
+                    <p style="margin-top: 5px;">${t.desc}</p>
+                    <p style="font-size: 0.8rem; color: #a2d5f2; margin-top: 5px;"><i>*Tersedia Upgrade hingga Lv.${t.levels.length}</i></p>
                 </div>
             </div>
         `;
@@ -91,7 +126,7 @@ function buildShopAndGallery() {
             <div class="card-info">
                 <h4>${bossType.type.toUpperCase()}</h4>
                 <span class="badge badge-dmg">HP: ${bossType.baseHp}</span>
-                <span class="badge badge-speed">Skill: Menurunkan Level Menara</span>
+                <span class="badge badge-speed">Skill: Turunkan Lv Menara</span>
                 <p>Boss mematikan! Instant Game Over jika menyentuh benteng.</p>
             </div>
         </div>
@@ -249,11 +284,10 @@ class Enemy {
             }
         }
 
-        // Variabel Slow yang dapat disesuaikan (dari towerConfig)
         if (this.slowTimer > 0) { 
             this.slowTimer--; 
         } else {
-            this.slowAmount = 0; // Hilang efek slow
+            this.slowAmount = 0; 
         }
 
         let blocked = false;
@@ -288,7 +322,6 @@ class Enemy {
                 }
             }
 
-            // SKILL BOSS BARU: DOWNGRADE TOWER
             if (this.isBoss && towers.length > 0) {
                 this.abilityTimer++;
                 if (this.abilityTimer === 300) { 
@@ -296,21 +329,17 @@ class Enemy {
                 }
                 if (this.abilityTimer >= 400) { 
                     this.isCasting = false; this.abilityTimer = 0;
-                    
-                    // Ambil daftar menara di area radius 180
                     let inRangeTowers = towers.filter(t => Math.hypot(this.x - t.x, this.y - t.y) < 180);
                     
                     if (inRangeTowers.length > 0) {
-                        // Pilih 1 menara secara acak dari yang di area
                         let t = inRangeTowers[Math.floor(Math.random() * inRangeTowers.length)];
                         
                         if (t.tier > 1) {
-                            t.downgrade(); // Turun level
+                            t.downgrade(); 
                             spawnParticles(t.x, t.y, 'orange');
                             sfx.bossDestroy();
                             showMessage(`⚠️ LEVEL ${towerConfig[t.type].name} DITURUNKAN BOSS!`, "orange");
                         } else {
-                            // Hancurkan prajurit jika itu barak
                             if(t.type === 'barracks') t.mySoldiers.forEach(s => s.isDead = true);
                             towers = towers.filter(tower => tower !== t);
                             spawnParticles(t.x, t.y, 'red');
@@ -390,7 +419,6 @@ class Tower {
     }
 
     applyStats() {
-        // Menarik data langsung dari towers.js berdasarkan tingkat (Tier)
         let conf = towerConfig[this.type].levels[this.tier - 1];
         this.range = conf.range;
         this.cooldown = conf.cooldown;
@@ -492,18 +520,17 @@ class Projectile {
         if (distance < this.speed) {
             let finalDmg = this.damage;
 
-            // Efek Khusus dari towers.js
-            if(this.effect.type === 'pierce' && this.target.type === 'tank') {
+            if(this.effect && this.effect.type === 'pierce' && this.target.type === 'tank') {
                 finalDmg *= this.effect.multiplier;
             }
 
             this.target.takeDamage(finalDmg);
 
-            if (this.effect.type === 'slow') {
+            if (this.effect && this.effect.type === 'slow') {
                 this.target.slowTimer = this.effect.duration;
                 this.target.slowAmount = this.effect.amount;
             }
-            if (this.effect.type === 'burn') {
+            if (this.effect && this.effect.type === 'burn') {
                 this.target.burnTimer = this.effect.duration;
                 this.target.burnDamage = this.effect.tickDamage;
             }
@@ -551,7 +578,7 @@ canvas.addEventListener('pointerdown', function(e) {
             if(Math.hypot(mouseX - t.x, mouseY - t.y) < 40) {
                 if(t.tier < 3 && currentEnergy >= t.upgradeCost) {
                     currentEnergy -= t.upgradeCost;
-                    t.tier++; t.applyStats(); // Tarik data terbaru dari towers.js
+                    t.tier++; t.applyStats(); 
                     sfx.upgrade(); spawnParticles(t.x, t.y, '#ffd700'); updateUI();
                     showMessage(`${towerConfig[t.type].name} Naik ke Lv.${t.tier}!`);
                 } else if(t.tier === 3) {
