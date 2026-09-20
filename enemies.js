@@ -14,7 +14,7 @@ const enemyTypesArr = [
         type: "fast", 
         color: '#f9d342', 
         baseHp: 50, 
-        baseSpeed: 3.5, 
+        baseSpeed: 2.5, 
         radius: 15, 
         isBoss: false 
     },   
