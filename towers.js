@@ -4,7 +4,7 @@
 const towerConfig = {
     ice: { 
         id: 'ice', name: "Menara Es", icon: "❄️", cost: 1, 
-        desc: "Melambatkan musuh. Cepat tapi damage kecil.", 
+        desc: "Melambatkan musuh. Cepat tapi damage kecil. Durasi slow ditingkatkan di level 3", 
         levels: [
             // Lvl 1: Slow 50% selama 1 detik
             { range: 140, cooldown: 20, damage: 8, upgradeCost: 2, effect: { type: 'slow', amount: 0.5, duration: 60 } },   
@@ -16,7 +16,7 @@ const towerConfig = {
     },
     fire: { 
         id: 'fire', name: "Menara Api", icon: "🔥", cost: 2, 
-        desc: "Efek membakar (Damage over Time) tiap setengah detik.", 
+        desc: "Efek membakar (Damage over Time) tiap setengah detik. Durasi burn ditingkatkan di level 3", 
         levels: [
             // Lvl 1: Bakar 5 DMG selama 3 detik
             { range: 160, cooldown: 60, damage: 25, upgradeCost: 3, effect: { type: 'burn', tickDamage: 5, duration: 180 } }, 
@@ -28,7 +28,7 @@ const towerConfig = {
     },
     lightning: { 
         id: 'lightning', name: "Menara Petir", icon: "⚡", cost: 3, 
-        desc: "Sangat lambat. Damage berlipat ganda melawan Tank.", 
+        desc: "Sangat lambat. Damage berlipat ganda melawan Tank. Damage 1050 pada tank di level 3", 
         levels: [
             // Lvl 1: Damage x2 melawan Tank
             { range: 220, cooldown: 150, damage: 100, upgradeCost: 5, effect: { type: 'pierce', multiplier: 2.0 } }, 
