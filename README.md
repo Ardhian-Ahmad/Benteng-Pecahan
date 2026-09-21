@@ -62,7 +62,7 @@ Mengubah Meta Permainan: Buka towers.js untuk mengonfigurasi tingkat upgrade, du
 
 Mengubah Kekuatan Boss: Buka enemies.js untuk mengatur atribut bossType.
 
-👨‍🏫 Kredit Pengembangan
+## 👨‍🏫 Kredit Pengembangan
 Diciptakan dan dirancang oleh Mirza Ardhian Ahmad.
 
 Game ini adalah manifestasi bahwa pendidik dapat merakit alat bantu ajar tingkat lanjut berstandar industri dengan memanfaatkan HTML5 Canvas terbuka untuk menciptakan pengalaman belajar yang imersif, kompetitif, dan kolaboratif.
