@@ -33,7 +33,7 @@ Arsitektur pergerakan koordinat tingkat mesin (*engine-level*), pembangkitan sin
 
 ```
 
-⚙️ Panduan Setup Database Online (Penting untuk Forking)
+## ⚙️ Panduan Setup Database Online (Penting untuk Forking)
 Jika Anda melakukan fork repository ini, fitur Papan Peringkat tidak akan berjalan sampai Anda menautkannya dengan akun Google Anda sendiri. Ikuti langkah berikut:
 
 Buat Google Sheets baru (misal: "Database Benteng Pecahan").
@@ -53,7 +53,7 @@ Salin URL Web App yang diberikan.
 Buka file app.js di baris paling atas, tempelkan URL tersebut pada:
 const GOOGLE_SHEET_URL = "URL_ANDA_DI_SINI";
 
-🛠️ Cara Modifikasi (Untuk Guru)
+## 🛠️ Cara Modifikasi (Untuk Guru)
 Proyek ini sangat mudah disesuaikan untuk mata pelajaran atau tingkat kesulitan lain:
 
 Mengubah Soal: Buka file questions.js dan sesuaikan array quizBank.
