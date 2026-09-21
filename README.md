@@ -31,6 +31,8 @@ Arsitektur pergerakan koordinat tingkat mesin (*engine-level*), pembangkitan sin
 ├── 📄 app.js          # [ENGINE] Logika game loop, fetch API, SVG renderer, & audio
 └── 📄 README.md       # Dokumentasi proyek
 
+```
+
 ⚙️ Panduan Setup Database Online (Penting untuk Forking)
 Jika Anda melakukan fork repository ini, fitur Papan Peringkat tidak akan berjalan sampai Anda menautkannya dengan akun Google Anda sendiri. Ikuti langkah berikut:
 
