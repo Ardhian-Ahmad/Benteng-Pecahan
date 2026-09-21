@@ -1,33 +1,66 @@
-# 🏰 Benteng Pecahan - Educational Tower Defense
+# 🏰 Benteng Pecahan - Cloud-Based Educational Tower Defense
 
-**Benteng Pecahan** adalah sebuah *game* edukasi interaktif bergenre *Tower Defense* yang dirancang untuk membantu siswa kelas 6 SD menguasai materi matematika (Pecahan, Desimal, dan Persentase). 
+**Benteng Pecahan** adalah *game* edukasi interaktif bergenre *Tower Defense* yang dirancang untuk membantu siswa kelas 6 SD menguasai materi matematika (Pecahan, Desimal, dan Persentase). 
 
-Game ini dikembangkan secara spesifik untuk dimainkan secara kolaboratif di atas **Papan Interaktif Digital (PID) 70 inci**, menggunakan pendekatan visual-spasial yang responsif terhadap sentuhan jari (*multi-touch*), namun tetap dapat dimainkan dengan sempurna di PC, Tablet, maupun *Smartphone*.
+Dibangun dengan **Vanilla HTML5, CSS3, dan JavaScript**, *game* ini dioptimalkan untuk dimainkan secara kolaboratif di atas **Papan Interaktif Digital (PID) 70 inci** menggunakan layar sentuh, namun tetap sangat responsif saat diakses melalui PC, Tablet, maupun *Smartphone*. 
 
----
-
-## 🎮 Fitur Utama
-
-* **Integrasi Kuis & Gameplay:** Pemain tidak mendapatkan sumber daya secara otomatis. Mereka harus memecahkan soal matematika dengan cepat untuk mendapatkan "Energi".
-* **Sistem Anti-Spam:** Menjawab salah akan memberikan penalti pengurangan Energi, mencegah siswa menebak jawaban secara asal.
-* **Data-Driven Architecture:** Atribut menara, musuh, dan bank soal dipisah ke dalam modul mandiri (`.js` terpisah) sehingga guru lain dapat memodifikasi keseimbangan game tanpa perlu menyentuh *core engine*.
-* **Ensiklopedia Dinamis (Galeri):** Memiliki menu Galeri terintegrasi yang membaca dan menampilkan statistik menara dan musuh langsung dari modul data.
-* **Sistem Progresi Penuh:** Terdiri dari 3 Level dengan tata letak peta (*map*) yang berbeda, sistem *Wave* (gelombang musuh), dan *Boss Area of Effect (AoE)* di akhir setiap level.
-* **Hall of Fame (Local Storage):** Menyimpan papan peringkat tim terbaik secara lokal di *browser* perangkat.
-* **Audio Sintetis 8-bit:** Menggunakan *Web Audio API* untuk menghasilkan *sound effect* (SFX) bergaya *retro* tanpa membebani ukuran proyek dengan file MP3 eksternal.
+Arsitektur pergerakan koordinat tingkat mesin (*engine-level*), pembangkitan sintesis audio 8-bit multikanal, serta implementasi animasi prosedural (*squash & stretch*) di dalam *game* ini juga menjadikannya studi kasus yang sangat relevan untuk dieksplorasi dalam kelas ekstrakurikuler *coding* dan animasi tingkat dasar.
 
 ---
 
-## 🏗️ Struktur Direktori
+## 🎮 Fitur Utama (Pembaruan Terbaru)
 
-Proyek ini dibangun menggunakan **Vanilla HTML5, CSS3, dan JavaScript murni** (tanpa *framework* eksternal), mengandalkan HTML5 `<canvas>` untuk pergerakan *engine* berkinerja tinggi.
+* **Cloud Leaderboard (Google Sheets API):** Sistem *Hall of Fame* terintegrasi secara *online*, mengirim dan menarik data skor 10 tim terbaik secara *real-time* menggunakan *backend* Google Apps Script.
+* **Vector Sprite Injection & Procedural Animation:** Karakter dan menara tidak menggunakan gambar eksternal yang membebani *server*, melainkan menggunakan injeksi *SVG Data URIs* yang dianimasikan dengan efek pemantulan matematis.
+* **Data-Driven Architecture:** Atribut menara, gelombang musuh, dan bank soal dipisah ke dalam modul mandiri. Modifikasi parameter *game* (seperti efek *Slow*, *Burn*, dan *Armor Piercing*) bisa dilakukan tanpa menyentuh *core engine*.
+* **Ensiklopedia Dinamis (Galeri):** Menu Galeri secara otomatis melakukan sinkronisasi dengan data di `towers.js` dan `enemies.js` untuk menampilkan atribut *damage*, kecepatan, dan harga secara *real-time*.
+* **Sistem Anti-Spam Kuis:** Menjawab salah akan memberikan penalti pengurangan Energi, memaksa siswa untuk menghitung alih-alih menebak secara acak.
+* **Smooth UI/UX:** Notifikasi pergantian *wave* menggunakan animasi *Toast Popup* (meluncur memantul) agar tidak menghalangi visibilitas pemain terhadap peta.
+
+---
+
+## 🏗️ Struktur Direktori Moduler
 
 ```text
 📁 benteng-pecahan/
-├── 📄 index.html      # Kerangka UI, Layout Menu, dan Canvas Game
-├── 📄 style.css       # Styling responsif (Flexbox Dynamic Viewport)
-├── 📄 questions.js    # [MODUL] Bank soal matematika & pecahan
-├── 📄 enemies.js      # [MODUL] Data tipe monster, HP, dan kecepatan
-├── 📄 towers.js       # [MODUL] Data harga, damage, dan skill menara
-├── 📄 app.js          # [ENGINE] Logika game loop, rendering grafis, dan audio
+├── 📄 index.html      # Kerangka UI, Layout Menu, Popup Wave, dan Canvas Game
+├── 📄 style.css       # Styling responsif (Flexbox Dynamic Viewport & Cubic-Bezier)
+├── 📄 questions.js    # [DATA] Bank soal matematika & pecahan
+├── 📄 enemies.js      # [DATA] Atribut musuh & Boss (HP, Speed, Radius)
+├── 📄 towers.js       # [DATA] Atribut leveling menara, skill khusus, & prajurit
+├── 📄 app.js          # [ENGINE] Logika game loop, fetch API, SVG renderer, & audio
 └── 📄 README.md       # Dokumentasi proyek
+
+⚙️ Panduan Setup Database Online (Penting untuk Forking)
+Jika Anda melakukan fork repository ini, fitur Papan Peringkat tidak akan berjalan sampai Anda menautkannya dengan akun Google Anda sendiri. Ikuti langkah berikut:
+
+Buat Google Sheets baru (misal: "Database Benteng Pecahan").
+
+Buat header di kolom A1 dan B1: Nama Tim dan Skor.
+
+Klik menu Ekstensi > Apps Script.
+
+Copy-paste kode backend (tersedia di panduan developer / issue tracker).
+
+Klik Terapkan (Deploy) > Deployment Baru.
+
+Pilih Aplikasi Web dengan akses ke Siapa Saja (Anyone).
+
+Salin URL Web App yang diberikan.
+
+Buka file app.js di baris paling atas, tempelkan URL tersebut pada:
+const GOOGLE_SHEET_URL = "URL_ANDA_DI_SINI";
+
+🛠️ Cara Modifikasi (Untuk Guru)
+Proyek ini sangat mudah disesuaikan untuk mata pelajaran atau tingkat kesulitan lain:
+
+Mengubah Soal: Buka file questions.js dan sesuaikan array quizBank.
+
+Mengubah Meta Permainan: Buka towers.js untuk mengonfigurasi tingkat upgrade, durasi efek terbakar (burn), persentase pelambatan es (slow), atau HP prajurit penahan.
+
+Mengubah Kekuatan Boss: Buka enemies.js untuk mengatur atribut bossType.
+
+👨‍🏫 Kredit Pengembangan
+Diciptakan dan dirancang oleh Mirza Ardhian Ahmad.
+
+Game ini adalah manifestasi bahwa pendidik dapat merakit alat bantu ajar tingkat lanjut berstandar industri dengan memanfaatkan HTML5 Canvas terbuka untuk menciptakan pengalaman belajar yang imersif, kompetitif, dan kolaboratif.
