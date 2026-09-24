@@ -1,5 +1,5 @@
 // URL Google Sheets API Anda
-const GOOGLE_SHEET_URL = "PASTE_URL_WEB_APP_DISINI";
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxEeaDFfJtfQqhPrMfr2VpmlQJew4LvYfCYUqG31i-2yXWmTfCRN7i9UmFE8ssgQL5gWg/exec";
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
