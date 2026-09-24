@@ -562,16 +562,36 @@ function renderLeaderboard(hofData) {
 }
 
 function handleEndGame(isWin) {
-    isGameOver = true; isGameWon = isWin; document.getElementById('wave-popup').classList.add('popup-hidden');
-    document.getElementById('final-score-text').innerText = `Skor Akhir ${teamName}: ${score}`; document.getElementById('final-score-text').classList.remove('hidden');
+    isGameOver = true; isGameWon = isWin; 
+    document.getElementById('wave-popup').classList.add('popup-hidden');
+    
+    document.getElementById('final-score-text').innerText = `Skor Akhir ${teamName}: ${score}`; 
+    document.getElementById('final-score-text').classList.remove('hidden');
+    
     document.getElementById('leaderboard-list').innerHTML = "<p style='text-align:center; color:#f9d342;'>Menyimpan skor ke server... 📡</p>";
-    document.getElementById('hof-gameover-controls').classList.add('hidden'); document.getElementById('hof-close-btn').classList.add('hidden'); document.getElementById('hof-screen').classList.remove('hidden');
+    document.getElementById('hof-gameover-controls').classList.add('hidden'); 
+    document.getElementById('hof-close-btn').classList.add('hidden'); 
+    document.getElementById('hof-screen').classList.remove('hidden');
 
-    let formData = new URLSearchParams(); formData.append('name', teamName); formData.append('score', score);
+    let formData = new URLSearchParams(); 
+    formData.append('name', teamName); 
+    formData.append('score', score);
+    
+    // --- PENAMBAHAN DATA ANALITIK ---
+    // Level ditambah 1 karena indeks di JavaScript dimulai dari 0 (0 = Level 1)
+    formData.append('level', currentLevelIdx + 1); 
+    formData.append('wave', currentWave);
 
-    fetch(GOOGLE_SHEET_URL, { method: 'POST', body: formData }).then(response => response.json())
-    .then(data => { renderLeaderboard(data.leaderboard); document.getElementById('hof-gameover-controls').classList.remove('hidden'); })
-    .catch(error => { document.getElementById('leaderboard-list').innerHTML = "<p style='color:red; text-align:center;'>Gagal terhubung ke server Google Sheets.</p>"; document.getElementById('hof-gameover-controls').classList.remove('hidden'); });
+    fetch(GOOGLE_SHEET_URL, { method: 'POST', body: formData })
+    .then(response => response.json())
+    .then(data => { 
+        renderLeaderboard(data.leaderboard); 
+        document.getElementById('hof-gameover-controls').classList.remove('hidden'); 
+    })
+    .catch(error => { 
+        document.getElementById('leaderboard-list').innerHTML = "<p style='color:red; text-align:center;'>Gagal terhubung ke server Google Sheets.</p>"; 
+        document.getElementById('hof-gameover-controls').classList.remove('hidden'); 
+    });
 }
 
 // --- RENDER ---
