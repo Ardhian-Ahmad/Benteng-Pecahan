@@ -1,5 +1,5 @@
-// Masukkan URL Aplikasi Web Google Apps Script Anda di dalam tanda kutip ini:
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxEeaDFfJtfQqhPrMfr2VpmlQJew4LvYfCYUqG31i-2yXWmTfCRN7i9UmFE8ssgQL5gWg/exec";
+// URL Google Sheets API Anda
+const GOOGLE_SHEET_URL = "PASTE_URL_WEB_APP_DISINI";
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -18,28 +18,21 @@ function getPointerPos(e) {
 // 🎨 ASSETS LIBRARY (VECTOR SPRITES INJECTION)
 // ==========================================
 const svgAssets = {
-    // TOWER SPRITES
     tower_ice: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="50,10 80,90 20,90" fill="#3498db"/><polygon points="50,10 65,90 35,90" fill="#85c1e9"/></svg>`,
     tower_fire: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="25" y="40" width="50" height="60" fill="#2c3e50"/><polygon points="10,40 50,10 90,40" fill="#c0392b"/><circle cx="50" cy="25" r="15" fill="#e67e22"/><circle cx="50" cy="20" r="8" fill="#f1c40f"/></svg>`,
     tower_lightning: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="40" y="30" width="20" height="70" fill="#8e44ad"/><circle cx="50" cy="30" r="25" fill="#f1c40f"/><polygon points="45,15 55,15 50,40" fill="#fff"/></svg>`,
     tower_barracks: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="10,90 50,20 90,90" fill="#27ae60"/><rect x="40" y="60" width="20" height="30" fill="#2c3e50"/><circle cx="50" cy="20" r="8" fill="#f1c40f"/></svg>`,
-    
-    // ENEMY SPRITES
     enemy_normal: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M10,80 Q50,10 90,80 Q50,100 10,80" fill="#e94560"/><circle cx="35" cy="60" r="8" fill="#fff"/><circle cx="65" cy="60" r="8" fill="#fff"/><circle cx="35" cy="60" r="3" fill="#000"/><circle cx="65" cy="60" r="3" fill="#000"/></svg>`,
     enemy_fast: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="50,90 10,20 50,40 90,20" fill="#f1c40f"/><circle cx="40" cy="40" r="4" fill="#000"/><circle cx="60" cy="40" r="4" fill="#000"/></svg>`,
     enemy_tank: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="15" width="70" height="70" rx="15" fill="#95a5a6"/><rect x="25" y="30" width="20" height="15" fill="#e74c3c"/><rect x="55" y="30" width="20" height="15" fill="#e74c3c"/><rect x="30" y="70" width="40" height="10" fill="#2c3e50"/></svg>`,
     enemy_boss: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M10,60 Q50,100 90,60 Q70,0 50,20 Q30,0 10,60" fill="#c0392b"/><circle cx="35" cy="50" r="10" fill="#f1c40f"/><circle cx="65" cy="50" r="10" fill="#f1c40f"/><polygon points="30,15 40,-5 50,15" fill="#f1c40f"/><polygon points="50,15 60,-5 70,15" fill="#f1c40f"/><path d="M30,80 Q50,90 70,80" stroke="#fff" stroke-width="5" fill="none"/></svg>`,
-    
-    // SOLDIER SPRITES
     soldier_normal: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="#bdc3c7"/><rect x="45" y="10" width="10" height="80" fill="#2c3e50"/><rect x="10" y="45" width="80" height="10" fill="#2c3e50"/></svg>`,
     soldier_leader: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="#f1c40f"/><rect x="42" y="10" width="16" height="80" fill="#c0392b"/><rect x="10" y="42" width="80" height="16" fill="#c0392b"/></svg>`
 };
 
 const images = {};
 for (let key in svgAssets) {
-    let img = new Image();
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgAssets[key]);
-    images[key] = img;
+    let img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgAssets[key]); images[key] = img;
 }
 
 // --- AUDIO ---
@@ -57,19 +50,14 @@ function playSound(freq, type, duration, vol = 0.1) {
     osc.stop(audioCtx.currentTime + duration);
 }
 const sfx = {
-    shoot: () => playSound(400 + Math.random()*100, 'square', 0.1, 0.05),
-    hit: () => playSound(100, 'sawtooth', 0.1, 0.1),
-    burn: () => playSound(50, 'sawtooth', 0.05, 0.05),
-    correct: () => { playSound(600, 'sine', 0.1); setTimeout(()=>playSound(900, 'sine', 0.2), 100); },
-    wrong: () => playSound(200, 'sawtooth', 0.3, 0.2),
-    upgrade: () => { playSound(400, 'square', 0.1); setTimeout(()=>playSound(800, 'square', 0.2), 100); },
-    bossWarn: () => playSound(150, 'square', 0.3, 0.3),
-    bossDestroy: () => playSound(50, 'sawtooth', 0.8, 0.5)
+    shoot: () => playSound(400 + Math.random()*100, 'square', 0.1, 0.05), hit: () => playSound(100, 'sawtooth', 0.1, 0.1),
+    burn: () => playSound(50, 'sawtooth', 0.05, 0.05), correct: () => { playSound(600, 'sine', 0.1); setTimeout(()=>playSound(900, 'sine', 0.2), 100); },
+    wrong: () => playSound(200, 'sawtooth', 0.3, 0.2), upgrade: () => { playSound(400, 'square', 0.1); setTimeout(()=>playSound(800, 'square', 0.2), 100); },
+    bossWarn: () => playSound(150, 'square', 0.3, 0.3), bossDestroy: () => playSound(50, 'sawtooth', 0.8, 0.5)
 };
 
 function showMessage(text, color = "#4ecca3") {
-    let msg = document.getElementById('message-area');
-    msg.innerText = text; msg.style.color = color;
+    let msg = document.getElementById('message-area'); msg.innerText = text; msg.style.color = color;
 }
 
 // --- UI DINAMIS ---
@@ -137,10 +125,11 @@ let baseHp = 10; let currentEnergy = 0; let score = 0; let frameCount = 0;
 let enemies = []; let towers = []; let projectiles = []; let soldiers = []; let particles = [];
 let placingTowerType = null; let placingTowerCost = 0;
 
+// SISTEM LEVEL
 const levelConfig = [
     { level: 1, maxWaves: 5, baseEnemyCount: 4, hpMult: 1.0, speedMult: 1.0 },
     { level: 2, maxWaves: 6, baseEnemyCount: 6, hpMult: 1.5, speedMult: 1.1 },
-    { level: 3, maxWaves: 8, baseEnemyCount: 8, hpMult: 2.2, speedMult: 1.3 }
+    { level: 3, maxWaves: 8, baseEnemyCount: 8, hpMult: 2.2, speedMult: 1.3 } // Wave 7 dan 8 akan sangat sulit
 ];
 let currentLevelIdx = 0; let currentWave = 1; let enemiesToSpawn = 0; let enemiesSpawned = 0; let waveActive = false; let currentPath = [];
 
@@ -150,10 +139,29 @@ function loadMapForLevel(level) {
     if (level === 2) currentPath = [{x:-50, y:H*0.8}, {x:W*0.2, y:H*0.8}, {x:W*0.2, y:H*0.3}, {x:W*0.5, y:H*0.3}, {x:W*0.5, y:H*0.8}, {x:W*0.8, y:H*0.8}, {x:W*0.8, y:-50}];
 }
 
-// --- KUIS ---
+// --- LOGIKA KUIS DENGAN SOAL STS 40% (REVISI) ---
 let currentQuestion = null; let isAnswering = false;
+
 function loadNextQuestion() {
-    currentQuestion = quizBank[Math.floor(Math.random() * quizBank.length)];
+    // Mengecek apakah berada di Level 3 (index 2) dan Wave 7 atau 8
+    let isStsWave = (currentLevelIdx === 2 && currentWave >= 7);
+    
+    if (isStsWave) {
+        // RNG: 40% kemungkinan mengambil soal dari stsBank
+        let rand = Math.random();
+        if (rand < 0.40 && typeof stsBank !== 'undefined' && stsBank.length > 0) {
+            currentQuestion = stsBank[Math.floor(Math.random() * stsBank.length)];
+            document.getElementById('question-text').style.color = "#ff7b54"; // Merah tanda soal sulit
+        } else {
+            currentQuestion = quizBank[Math.floor(Math.random() * quizBank.length)];
+            document.getElementById('question-text').style.color = "white";
+        }
+    } else {
+        // Mode Normal
+        currentQuestion = quizBank[Math.floor(Math.random() * quizBank.length)];
+        document.getElementById('question-text').style.color = "white";
+    }
+
     document.getElementById('question-text').innerText = "Soal: " + currentQuestion.q;
     let shuffledOptions = [...currentQuestion.options].sort(() => Math.random() - 0.5);
     let buttons = document.querySelectorAll('.quiz-btn');
@@ -168,9 +176,14 @@ function checkAnswer(btn) {
     isAnswering = true; initAudio();
     document.querySelectorAll('.quiz-btn').forEach(b => b.classList.add('locked'));
 
+    // Skor lebih besar untuk soal STS (yang diawali teks STS:)
+    let isStsQuestion = currentQuestion.q.includes("STS:");
+
     if(btn.innerText === currentQuestion.answer) {
-        currentEnergy += 1; score += 15; 
-        showMessage("BENAR! +1 Energi ⭐", "#f9d342"); btn.style.background = "#ffd700"; sfx.correct();
+        currentEnergy += 1; 
+        score += isStsQuestion ? 40 : 15; // Point ekstra
+        showMessage(isStsQuestion ? "BENAR! SOAL SULIT TERJAWAB (+40 Pts)" : "BENAR! +1 Energi ⭐", "#f9d342"); 
+        btn.style.background = "#ffd700"; sfx.correct();
     } else {
         currentEnergy = Math.max(0, currentEnergy - 1); 
         showMessage("SALAH! Energi -1 ❌", "red"); btn.style.background = "#e94560"; sfx.wrong();
@@ -218,8 +231,6 @@ class Soldier {
         this.x = x + (Math.random()-0.5)*40; this.y = y + (Math.random()-0.5)*40;
         this.hp = stats.hp; this.maxHp = stats.hp; this.damage = stats.damage; 
         this.radius = stats.radius; this.isLeader = isLeader; this.isDead = false;
-        
-        // Pilih sprite berdasarkan status
         this.spriteName = isLeader ? 'soldier_leader' : 'soldier_normal';
     }
     attack(enemiesList) {
@@ -231,9 +242,7 @@ class Soldier {
     }
     draw() {
         ctx.save(); ctx.translate(this.x, this.y);
-        // Animasi bernapas
-        let stretch = 1 + Math.sin(frameCount * 0.1) * 0.05;
-        ctx.scale(1, stretch);
+        let stretch = 1 + Math.sin(frameCount * 0.1) * 0.05; ctx.scale(1, stretch);
         
         let img = images[this.spriteName];
         if(img) ctx.drawImage(img, -this.radius*1.5, -this.radius*1.5, this.radius*3, this.radius*3);
@@ -301,7 +310,7 @@ class Enemy {
                 } else {
                     let angle = Math.atan2(dy, dx);
                     this.x += Math.cos(angle) * this.speed; this.y += Math.sin(angle) * this.speed;
-                    this.isMovingLeft = (Math.abs(angle) > Math.PI/2); // Deteksi arah
+                    this.isMovingLeft = (Math.abs(angle) > Math.PI/2); 
                 }
             }
 
@@ -342,19 +351,13 @@ class Enemy {
         }
 
         ctx.save(); ctx.translate(this.x, this.y);
-        
-        // Animasi Berjalan (Memantul & Meregang)
         let bounce = Math.abs(Math.sin(frameCount * 0.15)) * (this.speed * 2);
         let stretch = 1 + Math.cos(frameCount * 0.2) * 0.05;
-        ctx.scale(this.isMovingLeft ? -1 : 1, 1); // Balik badan jika ke kiri
-        ctx.scale(1/stretch, stretch); 
-        ctx.translate(0, -bounce); // Gerak lompat kecil
+        ctx.scale(this.isMovingLeft ? -1 : 1, 1); ctx.scale(1/stretch, stretch); ctx.translate(0, -bounce); 
 
-        // Draw Sprite
         let imgName = this.isBoss ? 'enemy_boss' : 'enemy_' + this.type;
         let img = images[imgName];
         if(img) {
-            // Efek warna jika kena slow
             if(this.slowTimer > 0) { ctx.globalAlpha = 0.5; }
             ctx.drawImage(img, -this.radius*1.5, -this.radius*1.5, this.radius*3, this.radius*3);
             ctx.globalAlpha = 1.0;
@@ -432,22 +435,15 @@ class Tower {
 
     draw() {
         ctx.beginPath(); ctx.arc(this.x, this.y, 60, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(233, 69, 96, 0.15)"; ctx.fill(); // Zona Merah
+        ctx.fillStyle = "rgba(233, 69, 96, 0.15)"; ctx.fill(); 
 
         ctx.save(); ctx.translate(this.x, this.y);
-        
-        // Animasi menara berdenyut halus
-        let pulse = 1 + Math.sin(frameCount * 0.05) * 0.02;
-        ctx.scale(pulse, pulse);
+        let pulse = 1 + Math.sin(frameCount * 0.05) * 0.02; ctx.scale(pulse, pulse);
 
         let img = images['tower_' + this.type];
-        if(img) {
-            ctx.drawImage(img, -35, -35, 70, 70); // Gambar Sprite Menara
-        }
-
+        if(img) { ctx.drawImage(img, -35, -35, 70, 70); }
         ctx.restore();
 
-        // Lingkaran Jangkauan transparan
         ctx.beginPath(); ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(255, 255, 255, 0.05)"; ctx.fill();
 
@@ -485,8 +481,6 @@ class Projectile {
     draw() {
         ctx.fillStyle = this.type === 'ice' ? '#3498db' : this.type === 'fire' ? '#e74c3c' : '#f1c40f';
         ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI * 2); ctx.fill();
-        
-        // Efek ekor peluru (Glow)
         ctx.beginPath(); ctx.arc(this.x, this.y, 14, 0, Math.PI * 2);
         ctx.fillStyle = this.type === 'ice' ? 'rgba(52, 152, 219, 0.4)' : this.type === 'fire' ? 'rgba(231, 76, 60, 0.4)' : 'rgba(241, 196, 15, 0.4)';
         ctx.fill();
@@ -525,21 +519,20 @@ canvas.addEventListener('pointerdown', function(e) {
 // --- LOGIKA WAVE ---
 function startWave() {
     let config = levelConfig[currentLevelIdx];
-    enemiesToSpawn = config.baseEnemyCount + (currentWave * 2);
-    enemiesSpawned = 0; waveActive = true;
+    enemiesToSpawn = config.baseEnemyCount + (currentWave * 2); enemiesSpawned = 0; waveActive = true;
     document.getElementById('wave-display').innerText = `Lvl ${config.level} - Wave ${currentWave} / ${config.maxWaves}`;
-    
-    // Perubahan: Menggunakan wave-popup dan popup-hidden
     document.getElementById('wave-popup').classList.add('popup-hidden');
+    
+    // PERINGATAN SOAL SULIT (WAVE 7 LEVEL 3)
+    if (currentLevelIdx === 2 && currentWave === 7) {
+        document.getElementById('message-area').innerText = "⚠️ PERINGATAN: SOAL UJIAN STS MULAI MUNCUL (PELUANG 40%)! ⚠️";
+        document.getElementById('message-area').style.color = "red";
+    }
 }
 
 function showAnnouncement(title, desc, timeoutDuration) {
-    document.getElementById('announce-title').innerText = title;
-    document.getElementById('announce-desc').innerText = desc;
-    
-    // Perubahan: Memanggil wave-popup
+    document.getElementById('announce-title').innerText = title; document.getElementById('announce-desc').innerText = desc;
     document.getElementById('wave-popup').classList.remove('popup-hidden');
-    
     if(timeoutDuration > 0) setTimeout(startWave, timeoutDuration);
 }
 
@@ -569,33 +562,16 @@ function renderLeaderboard(hofData) {
 }
 
 function handleEndGame(isWin) {
-    isGameOver = true; isGameWon = isWin;
-    
-    // Perubahan: Menyembunyikan wave-popup jika game over
-    document.getElementById('wave-popup').classList.add('popup-hidden');
-    
-    document.getElementById('final-score-text').innerText = `Skor Akhir ${teamName}: ${score}`;
-    document.getElementById('final-score-text').classList.remove('hidden');
-    
+    isGameOver = true; isGameWon = isWin; document.getElementById('wave-popup').classList.add('popup-hidden');
+    document.getElementById('final-score-text').innerText = `Skor Akhir ${teamName}: ${score}`; document.getElementById('final-score-text').classList.remove('hidden');
     document.getElementById('leaderboard-list').innerHTML = "<p style='text-align:center; color:#f9d342;'>Menyimpan skor ke server... 📡</p>";
-    document.getElementById('hof-gameover-controls').classList.add('hidden');
-    document.getElementById('hof-close-btn').classList.add('hidden');
-    document.getElementById('hof-screen').classList.remove('hidden');
+    document.getElementById('hof-gameover-controls').classList.add('hidden'); document.getElementById('hof-close-btn').classList.add('hidden'); document.getElementById('hof-screen').classList.remove('hidden');
 
-    let formData = new URLSearchParams();
-    formData.append('name', teamName);
-    formData.append('score', score);
+    let formData = new URLSearchParams(); formData.append('name', teamName); formData.append('score', score);
 
-    fetch(GOOGLE_SHEET_URL, { method: 'POST', body: formData })
-    .then(response => response.json())
-    .then(data => {
-        renderLeaderboard(data.leaderboard);
-        document.getElementById('hof-gameover-controls').classList.remove('hidden');
-    })
-    .catch(error => {
-        document.getElementById('leaderboard-list').innerHTML = "<p style='color:red; text-align:center;'>Gagal terhubung ke server Google Sheets.</p>";
-        document.getElementById('hof-gameover-controls').classList.remove('hidden');
-    });
+    fetch(GOOGLE_SHEET_URL, { method: 'POST', body: formData }).then(response => response.json())
+    .then(data => { renderLeaderboard(data.leaderboard); document.getElementById('hof-gameover-controls').classList.remove('hidden'); })
+    .catch(error => { document.getElementById('leaderboard-list').innerHTML = "<p style='color:red; text-align:center;'>Gagal terhubung ke server Google Sheets.</p>"; document.getElementById('hof-gameover-controls').classList.remove('hidden'); });
 }
 
 // --- RENDER ---
@@ -612,11 +588,10 @@ function drawMap() {
     ctx.beginPath(); ctx.moveTo(currentPath[0].x, currentPath[0].y);
     for (let i = 1; i < currentPath.length; i++) ctx.lineTo(currentPath[i].x, currentPath[i].y); ctx.stroke();
     
-    // Garis putus-putus di tengah jalan (Efek Visual)
     ctx.strokeStyle = '#34495e'; ctx.lineWidth = 4; ctx.setLineDash([15, 15]);
     ctx.beginPath(); ctx.moveTo(currentPath[0].x, currentPath[0].y);
     for (let i = 1; i < currentPath.length; i++) ctx.lineTo(currentPath[i].x, currentPath[i].y); ctx.stroke();
-    ctx.setLineDash([]); // Reset line dash
+    ctx.setLineDash([]);
 
     ctx.fillStyle = "#e94560"; ctx.beginPath(); ctx.arc(currentPath[0].x, currentPath[0].y, 30, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = "#4ecca3"; ctx.beginPath(); ctx.arc(currentPath[currentPath.length-1].x, currentPath[currentPath.length-1].y, 40, 0, Math.PI*2); ctx.fill();
@@ -624,7 +599,6 @@ function drawMap() {
 
 function gameLoop() {
     if(!gameStarted || isGameOver || isGameWon) return; 
-
     ctx.clearRect(0, 0, canvas.width, canvas.height); drawMap();
 
     if (waveActive && enemiesSpawned < enemiesToSpawn) {
@@ -643,10 +617,7 @@ function gameLoop() {
 
     towers.forEach(t => t.update()); towers.forEach(t => t.draw());
     soldiers.forEach(s => s.draw());
-    
-    // Urutkan musuh berdasarkan Y agar sprite yang di bawah menimpa yang di atas (Efek 3D/Isometric)
-    enemies.sort((a, b) => a.y - b.y);
-    enemies.forEach(e => { e.update(); e.draw(); });
+    enemies.sort((a, b) => a.y - b.y); enemies.forEach(e => { e.update(); e.draw(); });
     enemies = enemies.filter(e => e.hp > 0 && !e.isDead); 
     
     projectiles.forEach(p => { p.update(); p.draw(); }); projectiles = projectiles.filter(p => p.active !== false);
@@ -663,6 +634,13 @@ function startGame() {
     let nameInput = document.getElementById('team-name-input').value.trim();
     if(!nameInput) { alert("Masukkan Nama Tim dulu!"); return; }
     
+    // PERINGATAN KEPADA PEMAIN SAAT MEMULAI
+    document.querySelector('.instructions').innerHTML += `
+        <li style="color: #ff0044; margin-top: 15px;">
+            ⚠️ <b>PERHATIAN:</b> Di Level 3 (Wave 7 & 8), ada peluang 40% muncul soal dari Ujian STS Asli! Persiapkan dirimu!
+        </li>
+    `;
+
     initAudio(); teamName = nameInput; document.getElementById('team-display').innerText = teamName;
     document.getElementById('main-menu').classList.add('hidden'); document.getElementById('game-container').classList.remove('hidden');
     
