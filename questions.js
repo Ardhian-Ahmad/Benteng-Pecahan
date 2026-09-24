@@ -63,3 +63,17 @@ const quizBank = [
     { q: "Martabak dipotong 6, laku 3. Bagian yang laku adalah?", options: ["3/6", "2/6", "1/6"], answer: "3/6" },
     { q: "Budi minum setengah botol air. Pecahannya?", options: ["1/2", "1/3", "1/4"], answer: "1/2" },
 ];
+
+// Bank Soal Ujian (Asli STS) - Muncul 40% di Level 3 (Wave 7 & 8)
+const stsBank = [
+    { q: "STS: 8 x (3/5) = ...", options: ["24/5", "8/3", "4/5"], answer: "24/5" },
+    { q: "STS: 4 x (3/15) = ...", options: ["12/15", "12/45", "6/5"], answer: "12/15" },
+    { q: "STS: Ibu punya 4 kantong, tiap kantong (3/8) kg. Total?", options: ["1 1/2 kg", "1 3/4 kg", "7/8 kg"], answer: "1 1/2 kg" },
+    { q: "STS: 1/4 : 3 = ...", options: ["1/12", "2/3", "3/4"], answer: "1/12" },
+    { q: "STS: (8/9) : 4 = ...", options: ["2/9", "3/6", "9/2"], answer: "2/9" },
+    { q: "STS: Desimal dari (13/10) = ...", options: ["1.3", "0.13", "13"], answer: "1.3" },
+    { q: "STS: Desimal dari (3/25) = ...", options: ["0.12", "1.2", "0.3"], answer: "0.12" },
+    { q: "STS: Pecahan dari desimal 0.75 adalah?", options: ["3/4", "1/2", "2/3"], answer: "3/4" },
+    { q: "STS: Tanda untuk 3.7 ... 3.4 ?", options: [">", "<", "="], answer: ">" },
+    { q: "STS: Lebih besar dari 4.75?", options: ["4.8", "4.68", "4.74"], answer: "4.8" }
+];
